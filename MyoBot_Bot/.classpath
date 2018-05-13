@@ -12,5 +12,8 @@
 	<classpathentry kind="lib" path="lib/WPILib.jar"/>
 	<classpathentry kind="lib" path="lib/wpiutil-sources.jar"/>
 	<classpathentry kind="lib" path="lib/wpiutil.jar"/>
+	<classpathentry kind="lib" path="lib/CTRE_Phoenix-sources.jar"/>
+	<classpathentry kind="lib" path="lib/CTRE_Phoenix.jar"/>
+	<classpathentry kind="lib" path="lib/libCTRE_PhoenixCCI.so"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
