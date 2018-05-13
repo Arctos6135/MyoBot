@@ -7,8 +7,13 @@
 
 package myobot.robot;
 
+import edu.wpi.first.networktables.EntryListenerFlags;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.command.Scheduler;
+import myobot.robot.commands.Drive;
 import myobot.robot.subsystems.DriveTrain;
 
 /**
@@ -21,6 +26,12 @@ import myobot.robot.subsystems.DriveTrain;
 public class Robot extends TimedRobot {
 	public static DriveTrain driveTrain = new DriveTrain();
 	public static OI oi;
+	
+	public static NetworkTableInstance tableInstance;
+	public static NetworkTable table;
+	public static NetworkTableEntry driveForwardEntry;
+	
+	static boolean driving = false;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -29,6 +40,25 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotInit() {
 		oi = new OI();
+		
+		tableInstance = NetworkTableInstance.getDefault();
+		table = tableInstance.getTable("control");
+		driveForwardEntry = table.getEntry("driveForward");
+		
+		driveForwardEntry.addListener(event -> {
+			if(driveForwardEntry.getBoolean(false)) {
+				if(driving) {
+					new Drive(0).start();
+					driving = false;
+				}
+			}
+			else {
+				if(!driving) {
+					new Drive(0.5).start();
+					driving = true;
+				}
+			}
+		}, EntryListenerFlags.kNew | EntryListenerFlags.kUpdate);
 	}
 
 	/**
