@@ -1,0 +1,5 @@
+bin/
+
+.vs/
+*.VC.opendb
+*.VC.db
