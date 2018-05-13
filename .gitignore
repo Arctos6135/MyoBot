@@ -7,3 +7,5 @@ bin/
 Debug/
 Release/
 ipch/
+# Include MyoBot/bin however
+!/bin/
