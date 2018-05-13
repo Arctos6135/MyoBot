@@ -18,8 +18,8 @@ public class Main {
 	public static final int PORT = 6135;
 	
 	//Messages are all 4 bytes
-	public static final int MSG_REST = 0x0000;
-	public static final int MSG_DRIVEFORWARD = 0x0001;
+	public static final int ACT_REST = 0x0000;
+	public static final int ACT_DRIVEFORWARD = 0x0001;
 	
 	public static int chars2Int(char[] data) {
 		if(data.length < 4)
@@ -45,10 +45,10 @@ public class Main {
 				int msg = chars2Int(buf);
 				switch(msg) {
 				//Set all actions to false
-				case MSG_REST:
+				case ACT_REST:
 					driveForwardEntry.setBoolean(false);
 					break;
-				case MSG_DRIVEFORWARD:
+				case ACT_DRIVEFORWARD:
 					driveForwardEntry.setBoolean(true);
 					break;
 				//Set all actions to false and report error
@@ -57,6 +57,7 @@ public class Main {
 					System.err.println("Error: Unrecognized action code received");
 					break;
 				}
+				System.out.println("Action sent: " + msg);
 			}
 			
 			in.close();

@@ -20,3 +20,4 @@
 #include <Windows.h>
 #include <string>
 #include <stdexcept>
+#include <inttypes.h>

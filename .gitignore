@@ -3,3 +3,5 @@ bin/
 .vs/
 *.VC.opendb
 *.VC.db
+Debug/
+ipch/

@@ -5,6 +5,9 @@
 
 #define PORT "6135"
 
+#define ACT_REST (uint32_t) 0x0000
+#define ACT_DRIVEFORWARD (uint32_t) 0x0001
+
 #define MAKE_EXCEPTION(msg, code) std::runtime_error(std::string(msg).append(std::to_string(code)).c_str())
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -44,7 +47,7 @@ void setupSockets(SOCKET& listener, SOCKET& client) {
 	}
 
 	iResult = bind(listener, result->ai_addr, result->ai_addrlen);
-	if (iResult = SOCKET_ERROR) {
+	if (iResult == SOCKET_ERROR) {
 		std::runtime_error e = MAKE_EXCEPTION("Failed to bind: ", WSAGetLastError());
 		freeaddrinfo(result);
 		closesocket(listener);
@@ -85,6 +88,21 @@ void cleanupSockets(SOCKET& listener, SOCKET& client) {
 	closesocket(client);
 	closesocket(listener);
 	WSACleanup();
+}
+
+void int2Chars(uint32_t i, char* out) {
+	out[0] = (i & 0xF000) >> 24;
+	out[1] = (i & 0x0F00) >> 16;
+	out[2] = (i & 0x00F0) >> 8;
+	out[3] = (i & 0x000F);
+}
+
+void sendAction(uint32_t msg, SOCKET& sock) {
+	char data[4];
+	int2Chars(msg, data);
+	if (send(sock, data, 4, NULL) == SOCKET_ERROR) {
+		throw MAKE_EXCEPTION("Failed to send: ", WSAGetLastError());
+	}
 }
 
 int main() {
