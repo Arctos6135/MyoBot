@@ -8,19 +8,20 @@ import myobot.robot.Robot;
  */
 public class Drive extends InstantCommand {
 	
-	final double speed;
+	final double lspeed, rspeed;
 
-    public Drive(double speed) {
+    public Drive(double lspeed, double rspeed) {
         super();
         // Use requires() here to declare subsystem dependencies
         // eg. requires(chassis);
         requires(Robot.driveTrain);
-        this.speed = speed;
+        this.lspeed = lspeed;
+        this.rspeed = rspeed;
     }
 
     // Called once when the command executes
     protected void initialize() {
-    	Robot.driveTrain.setMotorsVBus(speed, speed);
+    	Robot.driveTrain.setMotorsVBus(lspeed, rspeed);
     }
 
 }

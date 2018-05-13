@@ -29,9 +29,13 @@ public class Robot extends TimedRobot {
 	
 	public static NetworkTableInstance tableInstance;
 	public static NetworkTable table;
-	public static NetworkTableEntry driveForwardEntry;
+	public static NetworkTableEntry stateEntry;
 	
-	static boolean driving = false;
+	//Messages are all 4 bytes
+	public static final int ACT_REST = 0x0000;
+	public static final int ACT_DRIVEFORWARD = 0x0001;
+	public static final int ACT_TURNLEFT = 0x0002;
+	public static final int ACT_TURNRIGHT = 0x0003;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -43,20 +47,25 @@ public class Robot extends TimedRobot {
 		
 		tableInstance = NetworkTableInstance.getDefault();
 		table = tableInstance.getTable("control");
-		driveForwardEntry = table.getEntry("driveForward");
+		stateEntry = table.getEntry("state");
 		
-		driveForwardEntry.addListener(event -> {
-			if(driveForwardEntry.getBoolean(false)) {
-				if(driving) {
-					new Drive(0).start();
-					driving = false;
-				}
-			}
-			else {
-				if(!driving) {
-					new Drive(0.5).start();
-					driving = true;
-				}
+		stateEntry.addListener(event -> {
+			int action = stateEntry.getNumber(ACT_REST).intValue();
+			
+			switch(action) {
+			case ACT_DRIVEFORWARD:
+				new Drive(0.5, 0.5).start();
+				break;
+			case ACT_TURNLEFT:
+				new Drive(-0.5, 0.5).start();
+				break;
+			case ACT_TURNRIGHT:
+				new Drive(0.5, -0.5).start();
+				break;
+			case ACT_REST:
+			default:
+				new Drive(0, 0).start();
+				break;
 			}
 		}, EntryListenerFlags.kNew | EntryListenerFlags.kUpdate);
 	}

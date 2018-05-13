@@ -6,6 +6,8 @@
 
 #define ACT_REST (uint32_t) 0x0000
 #define ACT_DRIVEFORWARD (uint32_t) 0x0001
+#define ACT_TURNLEFT (uint32_t) 0x0002
+#define ACT_TURNRIGHT (uint32_t) 0x0003
 
 #define UPDATE_FREQUENCY 20
 
@@ -79,18 +81,25 @@ int main() {
 		while (true) {
 			hub.run(1000 / UPDATE_FREQUENCY);
 
-			myo::Pose pose = pdc.currentPose;
+			if (!pdc.active)
+				break;
 
-			uint32_t action;
-			
-			if (pose == myo::Pose::fist) {
-				action = ACT_DRIVEFORWARD;
-			}
-			else if (pose == myo::Pose::rest) {
-				action = ACT_REST;
-			}
-			else {
-				action = ACT_REST;
+			uint32_t action = ACT_REST;
+
+			//Send data to move only if the Myo is on arm
+			if (pdc.onArm) {
+				myo::Pose pose = pdc.currentPose;
+
+				if (pose == myo::Pose::fist) {
+					action = ACT_DRIVEFORWARD;
+				}
+				else if (pose == myo::Pose::waveIn) {
+					//Check which arm the Myo is on to make controls also intuitive for left-handed people
+					action = (pdc.arm == myo::Arm::armRight) ? ACT_TURNLEFT : ACT_TURNRIGHT;
+				}
+				else if (pose == myo::Pose::waveOut) {
+					action = (pdc.arm == myo::Arm::armRight) ? ACT_TURNRIGHT : ACT_TURNLEFT;
+				}
 			}
 			
 			sendAction(action, clientSocket);

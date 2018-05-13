@@ -1,7 +1,9 @@
-bin/
-
+# Visual studio stuff
 .vs/
 *.VC.opendb
 *.VC.db
+# Build outputs
+bin/
 Debug/
+Release/
 ipch/
