@@ -21,3 +21,4 @@
 #include <string>
 #include <stdexcept>
 #include <inttypes.h>
+#include <myo/myo.hpp>
