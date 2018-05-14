@@ -13,8 +13,6 @@ import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.Encoder;
-import myobot.robot.misc.PIDMotorController;
-import myobot.robot.misc.RampedPIDMotorController;
 
 /**
  * The RobotMap is a mapping from the ports sensors and actuators are wired into
@@ -47,12 +45,6 @@ public class RobotMap {
     
     public static Encoder rightEncoder = new Encoder(2, 3, false, EncodingType.k4X);
     public static Encoder leftEncoder = new Encoder(0, 1, true, EncodingType.k4X);
-    
-    public static RampedPIDMotorController leftDrivePIDMotor = new RampedPIDMotorController(RobotMap.leftDriveTalon1, 0.05, false);
-    public static RampedPIDMotorController rightDrivePIDMotor = new RampedPIDMotorController(RobotMap.rightDriveTalon1, 0.05, true);
-    
-    public static PIDMotorController leftDrivePIDMotorUnramped = new PIDMotorController(RobotMap.leftDriveTalon1, false);
-    public static PIDMotorController rightDrivePIDMotorUnramped = new PIDMotorController(RobotMap.rightDriveTalon1, true);
     
     static {
     	leftDriveTalon2.follow(leftDriveTalon1);

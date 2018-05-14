@@ -4,6 +4,8 @@
 *.VC.db
 # Build outputs
 bin/
+build/
+dist/
 Debug/
 Release/
 ipch/
