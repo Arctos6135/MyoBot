@@ -33,7 +33,16 @@ public class Main {
 		
 		state = table.getEntry("state");
 		
+		state.setNumber(0x0001);
 		try {
+			Thread.sleep(3000);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		state.setNumber(0x0000);
+		
+		/*try {
 			Socket socket = new Socket("localhost", PORT);
 			InputStreamReader in = new InputStreamReader(socket.getInputStream());
 			
@@ -54,7 +63,7 @@ public class Main {
 			else {
 				System.err.println("Fatal Error: " + e.toString());
 			}
-		}
+		}*/
 	}
 
 }

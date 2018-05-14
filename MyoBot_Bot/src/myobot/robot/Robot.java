@@ -7,13 +7,11 @@
 
 package myobot.robot;
 
-import edu.wpi.first.networktables.EntryListenerFlags;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.command.Scheduler;
-import myobot.robot.commands.Drive;
 import myobot.robot.subsystems.DriveTrain;
 
 /**
@@ -24,7 +22,7 @@ import myobot.robot.subsystems.DriveTrain;
  * project.
  */
 public class Robot extends TimedRobot {
-	public static DriveTrain driveTrain = new DriveTrain();
+	public static DriveTrain driveTrain;
 	public static OI oi;
 	
 	public static NetworkTableInstance tableInstance;
@@ -48,26 +46,9 @@ public class Robot extends TimedRobot {
 		tableInstance = NetworkTableInstance.getDefault();
 		table = tableInstance.getTable("control");
 		stateEntry = table.getEntry("state");
+		stateEntry.setNumber(ACT_REST);
 		
-		stateEntry.addListener(event -> {
-			int action = stateEntry.getNumber(ACT_REST).intValue();
-			
-			switch(action) {
-			case ACT_DRIVEFORWARD:
-				new Drive(0.5, 0.5).start();
-				break;
-			case ACT_TURNLEFT:
-				new Drive(-0.5, 0.5).start();
-				break;
-			case ACT_TURNRIGHT:
-				new Drive(0.5, -0.5).start();
-				break;
-			case ACT_REST:
-			default:
-				new Drive(0, 0).start();
-				break;
-			}
-		}, EntryListenerFlags.kNew | EntryListenerFlags.kUpdate);
+		driveTrain = new DriveTrain();
 	}
 
 	/**
@@ -119,6 +100,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void teleopPeriodic() {
 		Scheduler.getInstance().run();
+		System.out.println(stateEntry.getNumber(ACT_REST).intValue());
 	}
 
 	/**

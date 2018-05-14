@@ -6,6 +6,7 @@ import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.command.Subsystem;
 import myobot.robot.RobotMap;
+import myobot.robot.commands.NetworkTablesDrive;
 
 /**
  *	Subsystem for the driving of the robot
@@ -35,6 +36,7 @@ public class DriveTrain extends Subsystem {
 	
     public void initDefaultCommand() {
         // Set the default command for a subsystem here.
+    	setDefaultCommand(new NetworkTablesDrive());
     }
     
     /**
