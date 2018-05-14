@@ -1,10 +1,5 @@
 package myobot.bridge;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ConnectException;
-import java.net.Socket;
-
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -28,19 +23,19 @@ public class Main {
 		tableInstance = NetworkTableInstance.getDefault();
 		table = tableInstance.getTable("control");
 		
+		state = table.getEntry("state");
 		tableInstance.startClientTeam(6135);
 		tableInstance.startDSClient();
 		
-		state = table.getEntry("state");
-		
-		state.setNumber(0x0001);
+		state.setDouble(0x0001);
 		try {
 			Thread.sleep(3000);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 		}
-		state.setNumber(0x0000);
+		System.out.println("Setting to 0");
+		state.setDouble(0x0000);
 		
 		/*try {
 			Socket socket = new Socket("localhost", PORT);

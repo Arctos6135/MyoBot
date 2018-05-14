@@ -20,7 +20,7 @@ public class NetworkTablesDrive extends Command {
 
     // Called repeatedly when this Command is scheduled to run
     protected void execute() {
-    	int code = Robot.stateEntry.getNumber(Robot.ACT_REST).intValue();
+    	int code = (int) Robot.stateEntry.getDouble(Robot.ACT_REST);
     	switch(code) {
 		case Robot.ACT_DRIVEFORWARD:
 			Robot.driveTrain.setMotorsVBus(0.5, 0.5);;
@@ -45,10 +45,12 @@ public class NetworkTablesDrive extends Command {
 
     // Called once after isFinished returns true
     protected void end() {
+    	Robot.driveTrain.setMotorsVBus(0, 0);
     }
 
     // Called when another command which requires one or more of the same
     // subsystems is scheduled to run
     protected void interrupted() {
+    	end();
     }
 }
