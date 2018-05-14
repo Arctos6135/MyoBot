@@ -63,12 +63,15 @@ public:
 
 SOCKET listenerSocket, clientSocket;
 
-int main() {
+int main(int argc, char** argv) {
+
 	try {
 		std::cout << "Creating sockets..." << std::endl;
 		setupSockets(listenerSocket, clientSocket);
 
-		myo::Hub hub("org.usfirst.frc.team6135");
+		std::cout << "Connection established. Creating Myo hub..." << std::endl;
+		myo::Hub hub("org.usfirst.frc.team6135.MyoBot_Cpp");
+
 		std::cout << "Waiting for Myo..." << std::endl;
 		myo::Myo* myo = hub.waitForMyo(10000);
 		if (!myo) {
@@ -107,8 +110,16 @@ int main() {
 
 		cleanupSockets(listenerSocket, clientSocket);
 	}
-	catch (std::runtime_error e) {
+	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
+		std::cerr << "Press enter to continue.";
+		std::cin.ignore();
+		return 1;
+	}
+	catch (...) {
+		std::cerr << "An error occurred." << std::endl;
+		std::cout << "Press enter to continue." << std::endl;
+		std::cin.ignore();
 		return 1;
 	}
 

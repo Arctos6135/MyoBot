@@ -1,3 +1,4 @@
+@echo off
 REM First start the Myo reader
 start myo_reader.exe
 REM Delay a bit for the Myo reader program to set up the sockets
