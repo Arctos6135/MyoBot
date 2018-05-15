@@ -48,14 +48,6 @@ public class Robot extends TimedRobot {
 		table = tableInstance.getTable("control");
 		stateEntry = table.getEntry("state");
 		
-		stateEntry.addListener(event -> {
-			System.out.println("test");
-			System.out.println("UPDATE: " + event.getEntry().getNumber(ACT_REST).intValue());
-		}, EntryListenerFlags.kNew | EntryListenerFlags.kUpdate | EntryListenerFlags.kDelete | EntryListenerFlags.kImmediate);
-		
-		tableInstance.setServerTeam(6135);
-		tableInstance.startServer();
-		
 		driveTrain = new DriveTrain();
 	}
 
@@ -108,7 +100,6 @@ public class Robot extends TimedRobot {
 	@Override
 	public void teleopPeriodic() {
 		Scheduler.getInstance().run();
-		//System.out.println(stateEntry.getNumber(ACT_REST).intValue());
 	}
 
 	/**

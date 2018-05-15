@@ -27,7 +27,7 @@ public class Main {
 		tableInstance.startClientTeam(6135);
 		tableInstance.startDSClient();
 		
-		state.setDouble(0x0001);
+		state.setNumber(0x0001);
 		try {
 			Thread.sleep(3000);
 		}
@@ -35,7 +35,13 @@ public class Main {
 			e.printStackTrace();
 		}
 		System.out.println("Setting to 0");
-		state.setDouble(0x0000);
+		state.setNumber(0x0000);
+		try {
+			Thread.sleep(1000);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
 		
 		/*try {
 			Socket socket = new Socket("localhost", PORT);
