@@ -35,6 +35,7 @@ public class Robot extends TimedRobot {
 	public static final int ACT_DRIVEFORWARD = 0x0001;
 	public static final int ACT_TURNLEFT = 0x0002;
 	public static final int ACT_TURNRIGHT = 0x0003;
+	public static final int ACT_DRIVEBACK = 0x0004;
 
 	/**
 	 * This function is run when the robot is first started up and should be

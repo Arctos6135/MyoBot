@@ -7,6 +7,8 @@ import myobot.robot.Robot;
  *
  */
 public class NetworkTablesDrive extends Command {
+	
+	public static final double DRIVE_SPEED = 0.3;
 
     public NetworkTablesDrive() {
         // Use requires() here to declare subsystem dependencies
@@ -23,14 +25,16 @@ public class NetworkTablesDrive extends Command {
     	int code = Robot.stateEntry.getNumber(Robot.ACT_REST).intValue();
     	switch(code) {
 		case Robot.ACT_DRIVEFORWARD:
-			Robot.driveTrain.setMotorsVBus(0.5, 0.5);;
+			Robot.driveTrain.setMotorsVBus(DRIVE_SPEED, DRIVE_SPEED);
 			break;
 		case Robot.ACT_TURNLEFT:
-			Robot.driveTrain.setMotorsVBus(-0.5, 0.5);
+			Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED, DRIVE_SPEED);
 			break;
 		case Robot.ACT_TURNRIGHT:
-			Robot.driveTrain.setMotorsVBus(0.5, -0.5);
+			Robot.driveTrain.setMotorsVBus(DRIVE_SPEED, -DRIVE_SPEED);
 			break;
+		case Robot.ACT_DRIVEBACK:
+			Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED, DRIVE_SPEED);
 		case Robot.ACT_REST:
 		default:
 			Robot.driveTrain.setMotorsVBus(0, 0);

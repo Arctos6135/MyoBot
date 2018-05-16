@@ -8,6 +8,7 @@
 #define ACT_DRIVEFORWARD (uint32_t) 0x0001
 #define ACT_TURNLEFT (uint32_t) 0x0002
 #define ACT_TURNRIGHT (uint32_t) 0x0003
+#define ACT_DRIVEBACK (uint32_t) 0x0004
 
 #define UPDATE_FREQUENCY 10
 
@@ -103,11 +104,14 @@ int main(int argc, char** argv) {
 				else if (pose == myo::Pose::waveOut) {
 					action = (pdc.arm == myo::Arm::armRight) ? ACT_TURNRIGHT : ACT_TURNLEFT;
 				}
+				else if (pose == myo::Pose::fingersSpread) {
+					action = ACT_DRIVEBACK;
+				}
 			}
 			
 			sendAction(action, clientSocket);
 
-			std::cout << "\r" << "Myo: " << (pdc.isUnlocked) ? "Unlocked" : "Locked";
+			std::cout << "\r" << "Myo: " << ((pdc.isUnlocked) ? "Unlocked" : "Locked");
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);
