@@ -1,5 +1,10 @@
 package myobot.bridge;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ConnectException;
+import java.net.Socket;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
