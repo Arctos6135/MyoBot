@@ -18,7 +18,13 @@ Both Java programs are Eclipse projects, and the C++ program is a Visual Studio 
 5. Run `bin/launch.cmd`
 6. Operate the robot!
 
-Making a fist drives forward, while waving in and out turns the robot.
+The controls are:
+* Fist: Drive Forward
+* Wave Left: Drive Left
+* Wave Right: Drive Right
+* Spread Fingers: Drive Backward
+
+*Note: The unlock state of the Myo is outputted through the Myo reader program.
 
 ### To Build (Currently Windows-Only)
 1. Import `MyoBot_Bot` and `MyoBot_Java` in Eclipse
