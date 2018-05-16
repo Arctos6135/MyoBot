@@ -34,23 +34,7 @@ public class Main {
 		tableInstance.startClientTeam(6135);
 		tableInstance.startDSClient();
 		
-		state.setNumber(0x0001);
 		try {
-			Thread.sleep(3000);
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-		System.out.println("Setting to 0");
-		state.setNumber(0x0000);
-		try {
-			Thread.sleep(1000);
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-		}
-		
-		/*try {
 			Socket socket = new Socket("localhost", PORT);
 			InputStreamReader in = new InputStreamReader(socket.getInputStream());
 			
@@ -71,7 +55,7 @@ public class Main {
 			else {
 				System.err.println("Fatal Error: " + e.toString());
 			}
-		}*/
+		}
 	}
 
 }
