@@ -9,7 +9,7 @@
 #define ACT_TURNLEFT (uint32_t) 0x0002
 #define ACT_TURNRIGHT (uint32_t) 0x0003
 
-#define UPDATE_FREQUENCY 20
+#define UPDATE_FREQUENCY 10
 
 class PoseDataCollector : public myo::DeviceListener {
 public:
