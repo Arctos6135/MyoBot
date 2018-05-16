@@ -20,7 +20,7 @@ public class NetworkTablesDrive extends Command {
 
     // Called repeatedly when this Command is scheduled to run
     protected void execute() {
-    	int code = (int) Robot.stateEntry.getNumber(Robot.ACT_REST);
+    	int code = Robot.stateEntry.getNumber(Robot.ACT_REST).intValue();
     	switch(code) {
 		case Robot.ACT_DRIVEFORWARD:
 			Robot.driveTrain.setMotorsVBus(0.5, 0.5);;
