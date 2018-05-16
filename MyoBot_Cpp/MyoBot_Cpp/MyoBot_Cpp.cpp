@@ -111,7 +111,8 @@ int main(int argc, char** argv) {
 			
 			sendAction(action, clientSocket);
 
-			std::cout << "\r" << "Myo: " << ((pdc.isUnlocked) ? "Unlocked" : "Locked");
+			//Spaces are added to completely cover the original
+			std::cout << "\r" << "Myo: " << ((pdc.isUnlocked) ? "Unlocked" : "Locked  ");
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);
