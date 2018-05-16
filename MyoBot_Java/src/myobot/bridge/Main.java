@@ -24,6 +24,8 @@ public class Main {
 		table = tableInstance.getTable("control");
 		
 		state = table.getEntry("state");
+		
+		tableInstance.setUpdateRate(1.0 / 20);
 		tableInstance.startClientTeam(6135);
 		tableInstance.startDSClient();
 		
