@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Scanner;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
@@ -36,13 +37,18 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
+		Scanner stdin = new Scanner(System.in);
+		System.out.print("Enter FRC Team Number: ");
+		int teamNumber = stdin.nextInt();
+		stdin.close();
+		
 		tableInstance = NetworkTableInstance.getDefault();
 		table = tableInstance.getTable("control");
 		
 		state = table.getEntry("state");
 		
 		tableInstance.setUpdateRate(1.0 / 20);
-		tableInstance.startClientTeam(6135);
+		tableInstance.startClientTeam(teamNumber);
 		tableInstance.startDSClient();
 		
 		try {
