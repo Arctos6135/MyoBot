@@ -34,7 +34,7 @@ public class NetworkTablesDrive extends Command {
 			Robot.driveTrain.setMotorsVBus(DRIVE_SPEED, -DRIVE_SPEED);
 			break;
 		case Robot.ACT_DRIVEBACK:
-			Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED, DRIVE_SPEED);
+			Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED, -DRIVE_SPEED);
 		case Robot.ACT_REST:
 		default:
 			Robot.driveTrain.setMotorsVBus(0, 0);
