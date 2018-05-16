@@ -53,8 +53,7 @@ public class Main {
 			while(in.read(buf) != -1) {
 				int msg = chars2Int(buf);
 				state.setNumber(msg);
-				System.out.print("\r                                       ");
-				System.out.print("Action Sent: " + actionNames.get(msg));
+				System.out.println("Action Sent: " + actionNames.get(msg));
 			}
 			
 			in.close();
