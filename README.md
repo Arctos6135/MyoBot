@@ -22,7 +22,7 @@ Making a fist drives forward, while waving in and out turns the robot.
 
 ### To Build (Currently Windows-Only)
 1. Import `MyoBot_Bot` and `MyoBot_Java` in Eclipse
-2. Import `MyoBot_Cpp` in Visual Studio 2015 or higher
+2. Import `MyoBot_Cpp` in Visual Studio 2017 or higher
 3. Add the following properties to the project configuration:
 * "C/C++"/General/Additional Include Directories: `$(ProjectDir)include`
 * Linker/General/Additional Library Directories: `$(ProjectDir)lib`
