@@ -24,7 +24,7 @@ public class Main {
 		actionNames.put(0x0000, "0x0000 (Rest)");
 		actionNames.put(0x0001, "0x0001 (Drive Forward)");
 		actionNames.put(0x0002, "0x0002 (Turn Left)");
-		actionNames.put(0x0003, "0x0003 (Turn Right");
+		actionNames.put(0x0003, "0x0003 (Turn Right)");
 		actionNames.put(0x0004, "0x0004 (Drive Backwards)");
 	}
 	
