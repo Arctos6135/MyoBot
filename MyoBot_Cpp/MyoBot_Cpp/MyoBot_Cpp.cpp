@@ -86,7 +86,7 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 			exitFlag = true;
 			break;
 		case 'U':
-			if (isMyoUnlocked) {
+			if (isMyoUnlocked()) {
 				lockMyo();
 			}
 			else {
