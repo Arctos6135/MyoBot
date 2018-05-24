@@ -68,11 +68,14 @@ void lockMyo() {
 void unlockMyo() {
 	pdc.theMyo->unlock(myo::Myo::unlockHold);
 }
+bool isMyoUnlocked() {
+	return pdc.isUnlocked;
+}
 
 std::atomic<bool> exitFlag;
 
 LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
-	if (nCode == HC_ACTION && wParam == WM_KEYDOWN) {
+	if (nCode == HC_ACTION && wParam == WM_SYSKEYDOWN) {
 		short altState = GetKeyState(VK_MENU);
 		if (!(altState & 0x8000)) {
 			return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -81,6 +84,14 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 		switch (p->vkCode) {
 		case 'E':
 			exitFlag = true;
+			break;
+		case 'U':
+			if (isMyoUnlocked) {
+				lockMyo();
+			}
+			else {
+				unlockMyo();
+			}
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -119,7 +130,7 @@ int main(int argc, char** argv) {
 		std::cout << "Creating sockets..." << std::endl;
 		setupSockets(listenerSocket, clientSocket);
 
-		std::cout << "Connection established. Creating Myo hub..." << std::endl;
+		std::cout << "Connection established. Connecting to Myo Hub..." << std::endl;
 		myo::Hub hub("org.usfirst.frc.team6135.MyoBot_Cpp");
 
 		std::cout << "Waiting for Myo..." << std::endl;
@@ -127,8 +138,13 @@ int main(int argc, char** argv) {
 		if (!myo) {
 			throw std::runtime_error("Unable to find Myo");
 		}
-		std::cout << "Myo detected!" << std::endl;
+		std::cout << "Myo found!" << std::endl;
 		hub.addListener(&pdc);
+		std::cout << "Waiting for Myo to connect..." << std::endl;
+		while (pdc.theMyo == nullptr) {
+			Sleep(100);
+		}
+		std::cout << "Myo is connected." << std::endl;
 
 		while (true) {
 			if (exitFlag)
