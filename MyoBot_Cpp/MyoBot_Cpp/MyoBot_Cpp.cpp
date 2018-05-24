@@ -72,20 +72,19 @@ void unlockMyo() {
 std::atomic<bool> exitFlag;
 
 LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
-	if (nCode == HC_ACTION) {
-		if (wParam == WM_KEYDOWN) {
-			short altState = GetKeyState(VK_MENU);
-			if (!(altState & 0x8000)) {
-				return CallNextHookEx(NULL, nCode, wParam, lParam);
-			}
-			PKBDLLHOOKSTRUCT p = (PKBDLLHOOKSTRUCT)lParam;
-			switch (p->vkCode) {
-			case 'E':
-				exitFlag = true;
-				break;
-			default: return CallNextHookEx(NULL, nCode, wParam, lParam);
-			}
+	if (nCode == HC_ACTION && wParam == WM_KEYDOWN) {
+		short altState = GetKeyState(VK_MENU);
+		if (!(altState & 0x8000)) {
+			return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
+		PKBDLLHOOKSTRUCT p = (PKBDLLHOOKSTRUCT)lParam;
+		switch (p->vkCode) {
+		case 'E':
+			exitFlag = true;
+			break;
+		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
+		}
+		return 1;
 	}
 	else {
 		return CallNextHookEx(NULL, nCode, wParam, lParam);
