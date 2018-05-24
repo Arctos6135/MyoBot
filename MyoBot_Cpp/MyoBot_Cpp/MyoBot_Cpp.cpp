@@ -19,38 +19,35 @@ public:
 	bool isUnlocked;
 	myo::Pose currentPose;
 	bool active;
+	myo::Myo* theMyo = nullptr;
 
 	PoseDataCollector() : active(true), onArm(false), isUnlocked(false), currentPose() {
 	}
 
 	void onUnpair(myo::Myo* myo, uint64_t timestamp) override {
-		active = false;
 		onArm = false;
 		isUnlocked = false;
+		theMyo = nullptr;
+		active = false;
 	}
 
 	void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose) override {
 		currentPose = pose;
 
 		if (pose != myo::Pose::unknown && pose != myo::Pose::rest) {
-			//Unlock the myo until it is told to lock again
-			//Allows pose holding without locking
-			myo->unlock(myo::Myo::unlockHold);
 			myo->notifyUserAction();
-		}
-		else {
-			//Unlock for a short period of time only to allow for pose changes
-			myo->unlock(myo::Myo::unlockTimed);
 		}
 	}
 
 	void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection, float rotation, myo::WarmupState warmupState) override {
 		onArm = true;
 		this->arm = arm;
+		theMyo = myo;
 	}
 
 	void onArmUnsync(myo::Myo* myo, uint64_t timestamp) override {
 		onArm = false;
+		theMyo = nullptr;
 	}
 
 	void onUnlock(myo::Myo* myo, uint64_t timestamp) override {
@@ -63,6 +60,14 @@ public:
 };
 
 SOCKET listenerSocket, clientSocket;
+PoseDataCollector pdc = PoseDataCollector();
+
+void lockMyo() {
+	pdc.theMyo->lock();
+}
+void unlockMyo() {
+	pdc.theMyo->unlock(myo::Myo::unlockHold);
+}
 
 int main(int argc, char** argv) {
 
@@ -79,7 +84,6 @@ int main(int argc, char** argv) {
 			throw std::runtime_error("Unable to find Myo");
 		}
 		std::cout << "Myo detected!" << std::endl;
-		PoseDataCollector pdc;
 		hub.addListener(&pdc);
 
 		while (true) {
