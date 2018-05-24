@@ -22,3 +22,5 @@
 #include <stdexcept>
 #include <inttypes.h>
 #include <myo/myo.hpp>
+#include <atomic>
+#include <process.h>

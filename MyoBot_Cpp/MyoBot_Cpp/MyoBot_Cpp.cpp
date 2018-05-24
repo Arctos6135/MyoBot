@@ -69,7 +69,29 @@ void unlockMyo() {
 	pdc.theMyo->unlock(myo::Myo::unlockHold);
 }
 
+unsigned int __stdcall messageLoopThread(void* data) {
+	std::atomic<bool>& exitFlag = *((std::atomic<bool>*) data);
+
+	std::cout << "Thread is running!!" << std::endl;
+
+	MSG msg;
+	while (GetMessage(&msg, NULL, 0, 0) != 0 && !exitFlag) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	//Remember to unhook!
+	return 0;
+}
+
 int main(int argc, char** argv) {
+
+	std::atomic<bool> exitFlag;
+	exitFlag = false;
+	unsigned int threadId;
+
+	std::cout << "Creating Additional Thread..." << std::endl;
+	HANDLE msgThread = (HANDLE)_beginthreadex(NULL, 0, &messageLoopThread, &exitFlag, 0, &threadId);
+	std::cout << "Thread creation successful." << std::endl;
 
 	try {
 		std::cout << "Creating sockets..." << std::endl;
@@ -125,15 +147,38 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << std::endl;
 		std::cerr << "Press enter to continue.";
 		std::cin.ignore();
+
+		//Clean up message loop thread
+		//Signal it to exit
+		exitFlag = true;
+		//Post a null message so GetMessage() returns
+		PostThreadMessage(threadId, WM_NULL, NULL, NULL);
+		WaitForSingleObject(msgThread, INFINITE);
+		CloseHandle(msgThread);
 		return 1;
 	}
 	catch (...) {
 		std::cerr << "An error occurred." << std::endl;
 		std::cout << "Press enter to continue." << std::endl;
 		std::cin.ignore();
+
+		//Clean up message loop thread
+		//Signal it to exit
+		exitFlag = true;
+		//Post a null message so GetMessage() returns
+		PostThreadMessage(threadId, WM_NULL, NULL, NULL);
+		WaitForSingleObject(msgThread, INFINITE);
+		CloseHandle(msgThread);
 		return 1;
 	}
 
+	//Clean up message loop thread
+	//Signal it to exit
+	exitFlag = true;
+	//Post a null message so GetMessage() returns
+	PostThreadMessage(threadId, WM_NULL, NULL, NULL);
+	WaitForSingleObject(msgThread, INFINITE);
+	CloseHandle(msgThread);
     return 0;
 }
 
