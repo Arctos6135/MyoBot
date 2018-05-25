@@ -40,18 +40,22 @@ public:
 	}
 
 	void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose) override {
+		if (!theMyo) {
+			theMyo = myo;
+		}
 		currentPose = pose;
 
 		if (pose != myo::Pose::unknown && pose != myo::Pose::rest) {
 			myo->notifyUserAction();
 			
-			//Do locking processing only if unlock mode is normal
-			if (unlockMode == MyoUnlockMode::UNLOCK_NORMAL) {
-				myo->unlock(myo::Myo::unlockHold);
-			}
+			myo->unlock(myo::Myo::unlockHold);
 		}
+		//Do locking processing only if unlock mode is normal
 		else if (unlockMode == MyoUnlockMode::UNLOCK_NORMAL) {
 			myo->unlock(myo::Myo::unlockTimed);
+		}
+		else {
+			myo->unlock(myo::Myo::unlockHold);
 		}
 	}
 
@@ -67,10 +71,16 @@ public:
 	}
 
 	void onUnlock(myo::Myo* myo, uint64_t timestamp) override {
+		if (!theMyo) {
+			theMyo = myo;
+		}
 		isUnlocked = true;
 	}
 
 	void onLock(myo::Myo* myo, uint64_t timestamp) override {
+		if (!theMyo) {
+			theMyo = myo;
+		}
 		isUnlocked = false;
 	}
 };
@@ -78,10 +88,12 @@ public:
 SOCKET listenerSocket, clientSocket;
 PoseDataCollector pdc = PoseDataCollector();
 void lockMyo() {
-	pdc.theMyo->lock();
+	if (pdc.theMyo)
+		pdc.theMyo->lock();
 }
 void unlockMyo() {
-	pdc.theMyo->unlock(myo::Myo::unlockHold);
+	if (pdc.theMyo)
+		pdc.theMyo->unlock(myo::Myo::unlockHold);
 }
 bool isMyoUnlocked() {
 	return pdc.isUnlocked;
@@ -102,6 +114,10 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 			exitFlag = true;
 			break;
 		case 'U':
+			if (!pdc.theMyo) {
+				std::cout << '\a' << std::flush;
+				break;
+			}
 			if (isMyoUnlocked()) {
 				lockMyo();
 			}
@@ -163,11 +179,11 @@ int main(int argc, char** argv) {
 		std::cout << "Myo found!" << std::endl;
 		hub.addListener(&pdc);
 		std::cout << "Waiting for Myo to connect..." << std::endl;
-		while (pdc.theMyo == nullptr) {
+		/*while (!pdc.theMyo) {
 			if (exitFlag)
 				throw std::runtime_error("Aborted.");
 			Sleep(100);
-		}
+		}*/
 		std::cout << "Myo is connected." << std::endl;
 
 		while (true) {
