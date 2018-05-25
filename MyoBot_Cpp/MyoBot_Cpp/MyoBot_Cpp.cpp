@@ -12,6 +12,7 @@
 
 #define UPDATE_FREQUENCY 10
 
+//Details of Myo device listeners can be found in the hello-myo example.
 class PoseDataCollector : public myo::DeviceListener {
 public:
 	bool onArm;
@@ -19,6 +20,7 @@ public:
 	bool isUnlocked;
 	myo::Pose currentPose;
 	bool active;
+	//Keep a pointer so we can lock and unlock anytime
 	myo::Myo* theMyo = nullptr;
 
 	PoseDataCollector() : active(true), onArm(false), isUnlocked(false), currentPose() {
@@ -76,6 +78,7 @@ std::atomic<bool> exitFlag;
 
 LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 	if (nCode == HC_ACTION && wParam == WM_SYSKEYDOWN) {
+		//Check if alt is pressed at the same time
 		short altState = GetKeyState(VK_MENU);
 		if (!(altState & 0x8000)) {
 			return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -102,7 +105,10 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 	}
 }
 
+//Low-Level keyboard hooks require a message loop
+//The loop is implemented in a separate thread here
 unsigned int __stdcall messageLoopThread(void* data) {
+	//An atomic bool is shared and if set to true both threads will exit
 	std::atomic<bool>& exitFlag = *((std::atomic<bool>*) data);
 
 	HHOOK keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, &LowLevelKeyboardHook, NULL, 0);
@@ -142,6 +148,8 @@ int main(int argc, char** argv) {
 		hub.addListener(&pdc);
 		std::cout << "Waiting for Myo to connect..." << std::endl;
 		while (pdc.theMyo == nullptr) {
+			if (exitFlag)
+				throw std::runtime_error("Aborted.");
 			Sleep(100);
 		}
 		std::cout << "Myo is connected." << std::endl;
