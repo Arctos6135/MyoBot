@@ -12,6 +12,12 @@
 
 #define UPDATE_FREQUENCY 10
 
+//Unlocking behavior of the Myo
+enum MyoUnlockMode {
+	UNLOCK_NORMAL,
+	UNLOCK_HOLD
+};
+MyoUnlockMode unlockMode = MyoUnlockMode::UNLOCK_HOLD;
 //Details of Myo device listeners can be found in the hello-myo example.
 class PoseDataCollector : public myo::DeviceListener {
 public:
@@ -38,6 +44,14 @@ public:
 
 		if (pose != myo::Pose::unknown && pose != myo::Pose::rest) {
 			myo->notifyUserAction();
+			
+			//Do locking processing only if unlock mode is normal
+			if (unlockMode == MyoUnlockMode::UNLOCK_NORMAL) {
+				myo->unlock(myo::Myo::unlockHold);
+			}
+		}
+		else if (unlockMode == MyoUnlockMode::UNLOCK_NORMAL) {
+			myo->unlock(myo::Myo::unlockTimed);
 		}
 	}
 
@@ -63,7 +77,6 @@ public:
 
 SOCKET listenerSocket, clientSocket;
 PoseDataCollector pdc = PoseDataCollector();
-
 void lockMyo() {
 	pdc.theMyo->lock();
 }
@@ -95,6 +108,9 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 			else {
 				unlockMyo();
 			}
+			break;
+		case 'M':
+			unlockMode = ((unlockMode == MyoUnlockMode::UNLOCK_HOLD) ? MyoUnlockMode::UNLOCK_NORMAL : MyoUnlockMode::UNLOCK_HOLD);
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -187,7 +203,11 @@ int main(int argc, char** argv) {
 			sendAction(action, clientSocket);
 
 			//Spaces are added to completely cover the original
-			std::cout << "\r" << "Myo: " << ((pdc.isUnlocked) ? "Unlocked" : "Locked  ");
+			std::string myoState = (pdc.isUnlocked ? "Unlocked " : "Locked ");
+			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
+			//Concatenate an empty string in the end to keep the length consistent
+			//This makes sure that the previous text is completely overwritten
+			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);
