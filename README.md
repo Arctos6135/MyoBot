@@ -1,8 +1,6 @@
 # MyoBot
 Control an FRC robot with a <a href="https://youtu.be/oWu9TFJjHaM">Thalmic Labs Myo Gesture Control Armband</a>!
 
-<b>This project is still a work-in-progress!</b>
-
 This project composes of 3 programs:
 1. A C++ program using the Myo SDK that reads gesture data, and sends it over a socket to the Java program
 2. A Java program that reads the data from the C++ program, and sends it over NetworkTables to the robot
@@ -24,7 +22,7 @@ The controls are:
 * Wave Right: Drive Right
 * Spread Fingers: Drive Backward
 
-*Note: The unlock state of the Myo is outputted through the Myo reader program.*
+While the program is running, the unlock state and mode of the Myo is printed to the console of `myo_reader.exe`. There are two different unlock modes: automatic and toggle. In automatic unlock, the Myo locks automatically after a short period of inactivity. In toggle mode, the Myo is locked/unlocked through pressing Alt+U on the keyboard. To switch between the unlock modes, press Alt+M. To exit the program, press Alt+E. The key press detection is done through a global key hook, so focus is not needed.
 
 ### To Build (Currently Windows-Only)
 1. Import `MyoBot_Bot` and `MyoBot_Java` in Eclipse
