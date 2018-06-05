@@ -14,7 +14,6 @@
 	<classpathentry kind="lib" path="lib/wpiutil.jar"/>
 	<classpathentry kind="lib" path="lib/CTRE_Phoenix-sources.jar"/>
 	<classpathentry kind="lib" path="lib/CTRE_Phoenix.jar"/>
-	<classpathentry kind="lib" path="lib/libCTRE_PhoenixCCI.so"/>
 	<classpathentry kind="var" path="wpilib" sourcepath="wpilib.sources"/>
 	<classpathentry kind="var" path="networktables" sourcepath="networktables.sources"/>
 	<classpathentry kind="var" path="opencv" sourcepath="opencv.sources"/>
@@ -23,8 +22,5 @@
 	<classpathentry kind="var" path="USERLIBS_DIR/CTRE_Phoenix-sources.jar"/>
 	<classpathentry kind="var" path="USERLIBS_DIR/CTRE_Phoenix.jar"/>
 	<classpathentry kind="var" path="USERLIBS_DIR/RobotPathfinder.jar"/>
-	<classpathentry kind="var" path="USERLIBS_DIR/CTRLib.jar"/>
-	<classpathentry kind="var" path="USERLIBS_DIR/navx_frc.jar"/>
-	<classpathentry kind="var" path="USERLIBS_DIR/niVisionWPI.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
