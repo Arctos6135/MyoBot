@@ -90,10 +90,13 @@ void int2Chars(uint32_t i, char* out) {
 	out[3] = (i & 0x000F);
 }
 
-void sendAction(uint32_t msg, SOCKET& sock) {
-	char data[4];
+void sendAction(SOCKET& sock, const uint32_t msg, const char* param) {
+	char data[8];
 	int2Chars(msg, data);
-	if (send(sock, data, 4, NULL) == SOCKET_ERROR) {
+	for (unsigned char i = 0; i < 4; i++) {
+		data[i + 4] = param[i];
+	}
+	if (send(sock, data, 8, NULL) == SOCKET_ERROR) {
 		throw MAKE_EXCEPTION("Failed to send: ", WSAGetLastError());
 	}
 }

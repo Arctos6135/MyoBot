@@ -9,8 +9,16 @@
 #define ACT_TURNLEFT (uint32_t) 0x0002
 #define ACT_TURNRIGHT (uint32_t) 0x0003
 #define ACT_DRIVEBACK (uint32_t) 0x0004
+#define ACT_RAISEELEVATOR (uint32_t) 0x0005
+#define ACT_LOWERELEVATOR (uint32_t) 0x0006
+#define ACT_INTAKE (uint32_t) 0x0007
+#define ACT_OUTTAKE (uint32_t) 0x0008
+
+const char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
 #define UPDATE_FREQUENCY 10
+
+#define PI 3.14159265359
 
 //Unlocking behavior of the Myo
 enum MyoUnlockMode {
@@ -28,8 +36,8 @@ public:
 	bool active;
 
 	//Last orientation data
-	double roll, pitch, yaw;
-	double refRoll, refPitch, refYaw;
+	float roll, pitch, yaw;
+	float refRoll, refPitch, refYaw;
 	myo::Quaternion<float>* orientation = nullptr;
 	const myo::Quaternion<float>* orientationRaw = nullptr;
 	//Keep a pointer so we can lock and unlock anytime
@@ -207,7 +215,7 @@ int main(int argc, char** argv) {
 
 	try {
 		std::cout << "Creating sockets..." << std::endl;
-		setupSockets(listenerSocket, clientSocket);
+		//setupSockets(listenerSocket, clientSocket);
 
 		std::cout << "Connection established. Connecting to Myo Hub..." << std::endl;
 		myo::Hub hub("org.usfirst.frc.team6135.MyoBot_Cpp");
@@ -234,9 +242,33 @@ int main(int argc, char** argv) {
 				break;
 
 			uint32_t action = ACT_REST;
+			const char* param = PARAM_NULL;
 
 			//Send data to move only if the Myo is on arm
 			if (collector.onArm) {
+				/*if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
+					action = collector.currentPose == myo::Pose::fist ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
+
+					float f = max(-PI / 2, min(PI / 2, collector.roll)) / (PI / 2);
+					param = reinterpret_cast<char*>(&f);
+				}
+				else if (collector.currentPose == myo::Pose::waveIn) {
+					action = ACT_INTAKE;
+				}
+				else if (collector.currentPose == myo::Pose::waveOut) {
+					action = ACT_OUTTAKE;
+				}
+				else if (collector.currentPose == myo::Pose::unknown || collector.currentPose == myo::Pose::rest) {
+					float f = max(-PI / 2, min(PI / 2, collector.pitch));
+
+					if (abs(f) >= PI / 6) {
+						action = f > 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR;
+					}
+					else {
+						action = ACT_REST;
+					}
+				}*/
+
 				/*myo::Pose pose = collector.currentPose;
 
 				if (pose == myo::Pose::fist) {
@@ -259,7 +291,7 @@ int main(int argc, char** argv) {
 				
 			}
 			else {
-				sendAction(ACT_REST, clientSocket);
+				//sendAction(clientSocket, ACT_REST, PARAM_NULL);
 			}
 			
 
@@ -271,7 +303,7 @@ int main(int argc, char** argv) {
 			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');*/
 		}
 
-		cleanupSockets(listenerSocket, clientSocket);
+		//cleanupSockets(listenerSocket, clientSocket);
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;

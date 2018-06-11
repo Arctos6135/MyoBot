@@ -4,4 +4,4 @@
 
 extern void setupSockets(SOCKET&, SOCKET&);
 extern void cleanupSockets(SOCKET&, SOCKET&);
-extern void sendAction(uint32_t, SOCKET&);
+extern void sendAction(SOCKET&, uint32_t, const char*);
