@@ -1,32 +1,59 @@
-// MyoBot_Cpp.cpp : Defines the entry point for the console application.
+// MyoBot_Cpp.cpp : Main file for the Myo data reader.
 //
 
 #include "stdafx.h"
 #include "socketutils.h"
 
+/*
+	Each message that this program sends over to the bridge program consists of 8 bytes.
+
+	The first 4 bytes form a 32-bit integer (big endian).
+	This integer value determines the 'action' that is to be performed.
+
+	The last 4 bytes are the 'parameters' of the action. This is usually a float, but
+	it does not have to be. It is used for additional data such as how fast to perform the action.
+*/
+//Action code set
 #define ACT_REST (uint32_t) 0x0000
 #define ACT_DRIVEFORWARD (uint32_t) 0x0001
-#define ACT_TURNLEFT (uint32_t) 0x0002
-#define ACT_TURNRIGHT (uint32_t) 0x0003
+#define ACT_TURNLEFT (uint32_t) 0x0002 //Unused in the current version; retained for compatibility
+#define ACT_TURNRIGHT (uint32_t) 0x0003 //Unused in the current version; retained for compatibility
 #define ACT_DRIVEBACK (uint32_t) 0x0004
 #define ACT_RAISEELEVATOR (uint32_t) 0x0005
 #define ACT_LOWERELEVATOR (uint32_t) 0x0006
 #define ACT_INTAKE (uint32_t) 0x0007
 #define ACT_OUTTAKE (uint32_t) 0x0008
 
+//A null parameter message. Default value to be sent if the action does not use parameters.
 const char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
+//How many times data is sent per second
 #define UPDATE_FREQUENCY 10
 
 #define PI 3.14159265359
 
-//Unlocking behavior of the Myo
+/*
+	The following enum, class and functions deal with collecting data from the Myo.
+	Most of this code is taken from the hello-myo example available online at
+	https://developer.thalmic.com/docs/api_reference/platform/hello-myo_8cpp-example.html
+
+	It is also included in the SDK.
+*/
+/*
+	For the purposes of this application, the normal unlocking behavior of the Myo is overridden.
+	There are two modes and the behavior can be switched by pressing Alt+M.
+
+	In UNLOCK_NORMAL, the Myo behaves normally. A period of inactivity will cause it to be locked,
+	and the unlock gesture will unlock it.
+
+	In UNLOCK_HOLD, the Myo is locked/unlocked by pressing Alt+U. Inactivity will no longer lock the Myo.
+*/
 enum MyoUnlockMode {
 	UNLOCK_NORMAL,
 	UNLOCK_HOLD
 };
 MyoUnlockMode unlockMode = MyoUnlockMode::UNLOCK_HOLD;
-//Details of Myo device listeners can be found in the hello-myo example.
+//Myo device listener
 class SingleMyoDataCollector : public myo::DeviceListener {
 public:
 	bool onArm;
@@ -38,11 +65,11 @@ public:
 	//Last orientation data
 	float roll, pitch, yaw;
 	float refRoll, refPitch, refYaw;
-	myo::Quaternion<float>* orientation = nullptr;
-	const myo::Quaternion<float>* orientationRaw = nullptr;
+	myo::Quaternion<float> orientation;
+	myo::Quaternion<float> orientationRaw;
 	//Keep a pointer so we can lock and unlock anytime
 	myo::Myo* theMyo = nullptr;
-	myo::Quaternion<float>* refOrientation = nullptr;
+	myo::Quaternion<float> refOrientation;
 
 	SingleMyoDataCollector() : active(true), onArm(false), isUnlocked(false), currentPose(),
 	roll(0), pitch(0), yaw(0) {
@@ -76,21 +103,15 @@ public:
 	}
 
 	void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& quat) override {
-		orientationRaw = &quat;
+		orientationRaw = myo::Quaternion<float>(quat);
 
-		myo::Quaternion<float> q = quat;
+		orientation = quat * refOrientation;
 
-		if (refOrientation) {
-			q *= *refOrientation;
-		}
-
-		orientation = &q;
-
-		roll = atan2(2.0f * (q.w() * q.x() + q.y() * q.z()),
-			1.0f - 2.0f * (q.x() * q.x() + q.y() * q.y()));
-		pitch = asin(max(-1.0f, min(1.0f, 2.0f * (q.w() * q.y() - q.z() * q.x()))));
-		yaw = atan2(2.0f * (q.w() * q.z() + q.x() * q.y()),
-			1.0f - 2.0f * (q.y() * q.y() + q.z() * q.z()));
+		roll = atan2(2.0f * (orientation.w() * orientation.x() + orientation.y() * orientation.z()),
+			1.0f - 2.0f * (orientation.x() * orientation.x() + orientation.y() * orientation.y()));
+		pitch = asin(max(-1.0f, min(1.0f, 2.0f * (orientation.w() * orientation.y() - orientation.z() * orientation.x()))));
+		yaw = atan2(2.0f * (orientation.w() * orientation.z() + orientation.x() * orientation.y()),
+			1.0f - 2.0f * (orientation.y() * orientation.y() + orientation.z() * orientation.z()));
 	}
 
 	void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection, float rotation, myo::WarmupState warmupState) override {
@@ -118,19 +139,18 @@ public:
 		isUnlocked = false;
 	}
 
-	void setRefOrientation(const myo::Quaternion<float>* ref) {
-		myo::Quaternion<float> inverse = ref->conjugate();
-		refOrientation = &inverse;
+	void setRefOrientation(const myo::Quaternion<float>& ref) {
+		myo::Quaternion<float> inverse = ref.conjugate();
+		refOrientation = inverse;
 
-		refRoll = atan2(2.0f * (ref->w() * ref->x() + ref->y() * ref->z()),
-			1.0f - 2.0f * (ref->x() * ref->x() + ref->y() * ref->y()));
-		refPitch = asin(max(-1.0f, min(1.0f, 2.0f * (ref->w() * ref->y() - ref->z() * ref->x()))));
-		refYaw = atan2(2.0f * (ref->w() * ref->z() + ref->x() * ref->y()),
-			1.0f - 2.0f * (ref->y() * ref->y() + ref->z() * ref->z()));
+		refRoll = atan2(2.0f * (ref.w() * ref.x() + ref.y() * ref.z()),
+			1.0f - 2.0f * (ref.x() * ref.x() + ref.y() * ref.y()));
+		refPitch = asin(max(-1.0f, min(1.0f, 2.0f * (ref.w() * ref.y() - ref.z() * ref.x()))));
+		refYaw = atan2(2.0f * (ref.w() * ref.z() + ref.x() * ref.y()),
+			1.0f - 2.0f * (ref.y() * ref.y() + ref.z() * ref.z()));
 	}
 };
 
-SOCKET listenerSocket, clientSocket;
 SingleMyoDataCollector collector = SingleMyoDataCollector();
 void lockMyo() {
 	if (collector.theMyo)
@@ -204,6 +224,7 @@ unsigned int __stdcall messageLoopThread(void* data) {
 	return 0;
 }
 
+SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
 
 	exitFlag = false;
@@ -215,7 +236,7 @@ int main(int argc, char** argv) {
 
 	try {
 		std::cout << "Creating sockets..." << std::endl;
-		//setupSockets(listenerSocket, clientSocket);
+		setupSockets(listenerSocket, clientSocket);
 
 		std::cout << "Connection established. Connecting to Myo Hub..." << std::endl;
 		myo::Hub hub("org.usfirst.frc.team6135.MyoBot_Cpp");
@@ -227,10 +248,8 @@ int main(int argc, char** argv) {
 		}
 		std::cout << "Myo found!" << std::endl;
 		hub.addListener(&collector);
-		std::cout << "The Myo is not initialized.\nPlease point your arm straight forward and parallel to the ground, and press Alt+I to initialize the Myo." << std::endl;
-		while (!collector.refOrientation) {
-			Sleep(100);
-		}
+		std::cout << "Warning: The Myo's orientation is not initialized. Please put your arm to the front\
+		with your palm parallel to the ground, and then press Alt+I to record your reference orientation." << std::endl;
 
 		while (true) {
 			if (exitFlag)
@@ -245,8 +264,8 @@ int main(int argc, char** argv) {
 			const char* param = PARAM_NULL;
 
 			//Send data to move only if the Myo is on arm
-			if (collector.onArm) {
-				/*if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
+			if (collector.onArm && collector.isUnlocked) {
+				if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
 					action = collector.currentPose == myo::Pose::fist ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
 
 					float f = max(-PI / 2, min(PI / 2, collector.roll)) / (PI / 2);
@@ -267,43 +286,19 @@ int main(int argc, char** argv) {
 					else {
 						action = ACT_REST;
 					}
-				}*/
-
-				/*myo::Pose pose = collector.currentPose;
-
-				if (pose == myo::Pose::fist) {
-					action = ACT_DRIVEFORWARD;
-				}
-				else if (pose == myo::Pose::waveIn) {
-					//Check which arm the Myo is on to make controls also intuitive for left-handed people
-					action = (collector.arm == myo::Arm::armRight) ? ACT_TURNLEFT : ACT_TURNRIGHT;
-				}
-				else if (pose == myo::Pose::waveOut) {
-					action = (collector.arm == myo::Arm::armRight) ? ACT_TURNRIGHT : ACT_TURNLEFT;
-				}
-				else if (pose == myo::Pose::fingersSpread) {
-					action = ACT_DRIVEBACK;
 				}
 
-				sendAction(action, clientSocket);*/
-
-				std::cout << "Orientation: roll=" << collector.roll << " pitch=" << collector.pitch << " yaw=" << collector.yaw << std::endl;
-				
+				sendAction(clientSocket, action, param);
+				//Spaces are added to completely cover the original
+				std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
+				myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
+				//Concatenate an empty string in the end to keep the length consistent
+				//This makes sure that the previous text is completely overwritten
+				std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
 			}
-			else {
-				//sendAction(clientSocket, ACT_REST, PARAM_NULL);
-			}
-			
-
-			/*//Spaces are added to completely cover the original
-			std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
-			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
-			//Concatenate an empty string in the end to keep the length consistent
-			//This makes sure that the previous text is completely overwritten
-			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');*/
 		}
 
-		//cleanupSockets(listenerSocket, clientSocket);
+		cleanupSockets(listenerSocket, clientSocket);
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
