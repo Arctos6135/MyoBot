@@ -19,17 +19,25 @@ enum MyoUnlockMode {
 };
 MyoUnlockMode unlockMode = MyoUnlockMode::UNLOCK_HOLD;
 //Details of Myo device listeners can be found in the hello-myo example.
-class PoseDataCollector : public myo::DeviceListener {
+class SingleMyoDataCollector : public myo::DeviceListener {
 public:
 	bool onArm;
 	myo::Arm arm;
 	bool isUnlocked;
 	myo::Pose currentPose;
 	bool active;
+
+	//Last orientation data
+	double roll, pitch, yaw;
+	double refRoll, refPitch, refYaw;
+	myo::Quaternion<float>* orientation = nullptr;
+	const myo::Quaternion<float>* orientationRaw = nullptr;
 	//Keep a pointer so we can lock and unlock anytime
 	myo::Myo* theMyo = nullptr;
+	myo::Quaternion<float>* refOrientation = nullptr;
 
-	PoseDataCollector() : active(true), onArm(false), isUnlocked(false), currentPose() {
+	SingleMyoDataCollector() : active(true), onArm(false), isUnlocked(false), currentPose(),
+	roll(0), pitch(0), yaw(0) {
 	}
 
 	void onUnpair(myo::Myo* myo, uint64_t timestamp) override {
@@ -59,6 +67,24 @@ public:
 		}
 	}
 
+	void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& quat) override {
+		orientationRaw = &quat;
+
+		myo::Quaternion<float> q = quat;
+
+		if (refOrientation) {
+			q *= *refOrientation;
+		}
+
+		orientation = &q;
+
+		roll = atan2(2.0f * (q.w() * q.x() + q.y() * q.z()),
+			1.0f - 2.0f * (q.x() * q.x() + q.y() * q.y()));
+		pitch = asin(max(-1.0f, min(1.0f, 2.0f * (q.w() * q.y() - q.z() * q.x()))));
+		yaw = atan2(2.0f * (q.w() * q.z() + q.x() * q.y()),
+			1.0f - 2.0f * (q.y() * q.y() + q.z() * q.z()));
+	}
+
 	void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection, float rotation, myo::WarmupState warmupState) override {
 		onArm = true;
 		this->arm = arm;
@@ -83,20 +109,31 @@ public:
 		}
 		isUnlocked = false;
 	}
+
+	void setRefOrientation(const myo::Quaternion<float>* ref) {
+		myo::Quaternion<float> inverse = ref->conjugate();
+		refOrientation = &inverse;
+
+		refRoll = atan2(2.0f * (ref->w() * ref->x() + ref->y() * ref->z()),
+			1.0f - 2.0f * (ref->x() * ref->x() + ref->y() * ref->y()));
+		refPitch = asin(max(-1.0f, min(1.0f, 2.0f * (ref->w() * ref->y() - ref->z() * ref->x()))));
+		refYaw = atan2(2.0f * (ref->w() * ref->z() + ref->x() * ref->y()),
+			1.0f - 2.0f * (ref->y() * ref->y() + ref->z() * ref->z()));
+	}
 };
 
 SOCKET listenerSocket, clientSocket;
-PoseDataCollector pdc = PoseDataCollector();
+SingleMyoDataCollector collector = SingleMyoDataCollector();
 void lockMyo() {
-	if (pdc.theMyo)
-		pdc.theMyo->lock();
+	if (collector.theMyo)
+		collector.theMyo->lock();
 }
 void unlockMyo() {
-	if (pdc.theMyo)
-		pdc.theMyo->unlock(myo::Myo::unlockHold);
+	if (collector.theMyo)
+		collector.theMyo->unlock(myo::Myo::unlockHold);
 }
 bool isMyoUnlocked() {
-	return pdc.isUnlocked;
+	return collector.isUnlocked;
 }
 
 std::atomic<bool> exitFlag;
@@ -114,7 +151,7 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 			exitFlag = true;
 			break;
 		case 'U':
-			if (!pdc.theMyo) {
+			if (!collector.theMyo) {
 				std::cout << '\a' << std::flush;
 				break;
 			}
@@ -127,6 +164,10 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 			break;
 		case 'M':
 			unlockMode = ((unlockMode == MyoUnlockMode::UNLOCK_HOLD) ? MyoUnlockMode::UNLOCK_NORMAL : MyoUnlockMode::UNLOCK_HOLD);
+			break;
+		case 'I':
+			collector.setRefOrientation(collector.orientationRaw);
+			std::cout << "Reference orientation updated: roll=" << collector.refRoll << " pitch=" << collector.refPitch << " yaw=" << collector.refYaw << std::endl;
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -177,14 +218,11 @@ int main(int argc, char** argv) {
 			throw std::runtime_error("Unable to find Myo");
 		}
 		std::cout << "Myo found!" << std::endl;
-		hub.addListener(&pdc);
-		std::cout << "Waiting for Myo to connect..." << std::endl;
-		/*while (!pdc.theMyo) {
-			if (exitFlag)
-				throw std::runtime_error("Aborted.");
+		hub.addListener(&collector);
+		std::cout << "The Myo is not initialized.\nPlease point your arm straight forward and parallel to the ground, and press Alt+I to initialize the Myo." << std::endl;
+		while (!collector.refOrientation) {
 			Sleep(100);
-		}*/
-		std::cout << "Myo is connected." << std::endl;
+		}
 
 		while (true) {
 			if (exitFlag)
@@ -192,38 +230,45 @@ int main(int argc, char** argv) {
 
 			hub.run(1000 / UPDATE_FREQUENCY);
 
-			if (!pdc.active)
+			if (!collector.active)
 				break;
 
 			uint32_t action = ACT_REST;
 
 			//Send data to move only if the Myo is on arm
-			if (pdc.onArm) {
-				myo::Pose pose = pdc.currentPose;
+			if (collector.onArm) {
+				/*myo::Pose pose = collector.currentPose;
 
 				if (pose == myo::Pose::fist) {
 					action = ACT_DRIVEFORWARD;
 				}
 				else if (pose == myo::Pose::waveIn) {
 					//Check which arm the Myo is on to make controls also intuitive for left-handed people
-					action = (pdc.arm == myo::Arm::armRight) ? ACT_TURNLEFT : ACT_TURNRIGHT;
+					action = (collector.arm == myo::Arm::armRight) ? ACT_TURNLEFT : ACT_TURNRIGHT;
 				}
 				else if (pose == myo::Pose::waveOut) {
-					action = (pdc.arm == myo::Arm::armRight) ? ACT_TURNRIGHT : ACT_TURNLEFT;
+					action = (collector.arm == myo::Arm::armRight) ? ACT_TURNRIGHT : ACT_TURNLEFT;
 				}
 				else if (pose == myo::Pose::fingersSpread) {
 					action = ACT_DRIVEBACK;
 				}
+
+				sendAction(action, clientSocket);*/
+
+				std::cout << "Orientation: roll=" << collector.roll << " pitch=" << collector.pitch << " yaw=" << collector.yaw << std::endl;
+				
+			}
+			else {
+				sendAction(ACT_REST, clientSocket);
 			}
 			
-			sendAction(action, clientSocket);
 
-			//Spaces are added to completely cover the original
-			std::string myoState = (pdc.isUnlocked ? "Unlocked " : "Locked ");
+			/*//Spaces are added to completely cover the original
+			std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
 			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
 			//Concatenate an empty string in the end to keep the length consistent
 			//This makes sure that the previous text is completely overwritten
-			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
+			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');*/
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);
