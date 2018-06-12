@@ -268,6 +268,22 @@ unsigned int __stdcall messageLoopThread(void* data) {
 	return 0;
 }
 
+//This console routine handler makes sure that when our program exits, the Myo is locked.
+BOOL WINAPI ConsoleHandler(DWORD dwCtrlType) {
+	switch (dwCtrlType) {
+	//Handle exit via Ctrl+C, Ctrl+Break, and the close button
+	//No need to worry about logoff and shutdown
+	case CTRL_C_EVENT:
+	case CTRL_BREAK_EVENT:
+	case CTRL_CLOSE_EVENT:
+		if (collector.theMyo)
+			lockMyo();
+		break;
+	default: return FALSE;
+	}
+	return TRUE;
+}
+
 void int32ToChars(int32_t i, char* out) {
 	out[0] = (i & 0xFF000000) >> 24;
 	out[1] = (i & 0x00FF0000) >> 16;
@@ -279,6 +295,9 @@ SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
 
 	exitFlag = false;
+	//Add our console routine handler
+	SetConsoleCtrlHandler(&ConsoleHandler, TRUE);
+
 	//ID of our message loop thread
 	unsigned int threadId;
 

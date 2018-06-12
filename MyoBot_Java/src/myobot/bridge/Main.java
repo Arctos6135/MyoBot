@@ -54,21 +54,19 @@ public class Main {
 	
 	//Used later to convert the raw bytes from the socket to an integer action code
 	public static int chars2Int(char[] data) {
-		return ((byte) data[0] << 24) | ((byte) data[1] << 16) | ((byte) data[2] << 8) | (byte) data[3];
+		return ((byte) (data[0] & 0xFF) << 24) | ((byte) (data[1] & 0xFF) << 16) | 
+				((byte) (data[2] & 0xFF) << 8) | (byte) (data[3] & 0xFF);
 	}
 	//Used later to convert the array of bytes from the socket to a hexadecimal representation
 	private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
-	public static String bytesToHex(byte[] bytes) {
-	    char[] hexChars = new char[bytes.length * 2];
-	    for ( int j = 0; j < bytes.length; j++ ) {
-	        int v = bytes[j] & 0xFF;
+	public static String charsToHex(char[] chars) {
+	    char[] hexChars = new char[chars.length * 2];
+	    for ( int j = 0; j < chars.length; j++ ) {
+	        int v = chars[j] & 0xFF;
 	        hexChars[j * 2] = hexArray[v >>> 4];
 	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
 	    }
 	    return new String(hexChars);
-	}
-	public static int bytes2Int(byte[] data) {
-		return (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
 	}
 	
 	//Length of last message
@@ -107,26 +105,26 @@ public class Main {
 			
 			char[] buf = new char[8];
 			char[] actionBytes = new char[4];
-			byte[] param = new byte[4];
+			char[] param = new char[4];
 			//Read the socket message, in 8 raw bytes
 			while(in.read(buf) != -1) {
 				//Separate the 8 bytes into bytes for the action code and param
 				for(int i = 0; i < 4; i ++) {
 					actionBytes[i] = buf[i];
-					param[i] = (byte) buf[i + 4];
+					param[i] = buf[i + 4];
 				}
 				int action = chars2Int(actionBytes);
 				
 				//Set the values to send them over NetworkTables
 				actionEntry.forceSetNumber(action);
 				for(int i = 0; i < 4; i ++) {
-					paramEntries[i].forceSetValue(param[i]);
+					paramEntries[i].forceSetValue((byte) param[i]);
 				}
 				
 				//Output information
 				String message = "Action Sent: " + Integer.toHexString(action) + " (" +
 						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")        " +
-						"Parameter Data: 0x" + bytesToHex(param) + " (" + bytes2Int(param) + ")";
+						"Parameter Data: 0x" + charsToHex(param) + " (" + chars2Int(param) + ")";
 				//Output backspace characters to erase the last line before outputting our new message.
 				//This makes sure the line is cleared
 				//First, output backspaces to go to the beginning of the line
