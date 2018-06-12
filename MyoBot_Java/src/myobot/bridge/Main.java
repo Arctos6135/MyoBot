@@ -54,8 +54,6 @@ public class Main {
 	
 	//Used later to convert the raw bytes from the socket to an integer action code
 	public static int chars2Int(char[] data) {
-		if(data.length < 4)
-			throw new IllegalArgumentException("Not enough bytes");
 		return ((byte) data[0] << 24) | ((byte) data[1] << 16) | ((byte) data[2] << 8) | (byte) data[3];
 	}
 	//Used later to convert the array of bytes from the socket to a hexadecimal representation
@@ -69,10 +67,8 @@ public class Main {
 	    }
 	    return new String(hexChars);
 	}
-	public static float bytes2Float(byte[] data) {
-		int i = ((byte) data[0] << 24) | ((byte) data[1] << 16) | ((byte) data[2] << 8) | (byte) data[3];
-		
-		return Float.intBitsToFloat(i);
+	public static int bytes2Int(byte[] data) {
+		return (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
 	}
 	
 	//Length of last message
@@ -130,7 +126,7 @@ public class Main {
 				//Output information
 				String message = "Action Sent: " + Integer.toHexString(action) + " (" +
 						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")        " +
-						"Parameter Data: 0x" + bytesToHex(param) + " (" + bytes2Float(param) + ")";
+						"Parameter Data: 0x" + bytesToHex(param) + " (" + bytes2Int(param) + ")";
 				//Output backspace characters to erase the last line before outputting our new message.
 				//This makes sure the line is cleared
 				//First, output backspaces to go to the beginning of the line

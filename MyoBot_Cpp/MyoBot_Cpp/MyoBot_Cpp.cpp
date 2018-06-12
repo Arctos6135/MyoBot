@@ -12,8 +12,8 @@
 	The first 4 bytes form a 32-bit integer (big endian).
 	This integer value determines the 'action' that is to be performed.
 
-	The last 4 bytes are the 'parameters' of the action. This is usually a float, but
-	it does not have to be. It is used for additional data such as how fast to perform the action.
+	The last 4 bytes are the 'parameters' of the action. These bytes can represent anything and 
+	can vary according to action.
 */
 //Action code set
 #define ACT_REST (uint32_t) 0x0000
@@ -29,8 +29,12 @@
 //A null parameter message. Default value to be sent if the action does not use parameters.
 const char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
+//Some params are sent as integers. This is the max value the integer
+//can be.
+#define PARAM_INT_MAX 0x00FFFFFF
+
 //How many times data is sent per second
-#define UPDATE_FREQUENCY 10
+#define UPDATE_FREQUENCY 2
 
 #define PI 3.14159265359
 
@@ -264,6 +268,13 @@ unsigned int __stdcall messageLoopThread(void* data) {
 	return 0;
 }
 
+void int32ToChars(int32_t i, char* out) {
+	out[0] = (i & 0xFF000000) >> 24;
+	out[1] = (i & 0x00FF0000) >> 16;
+	out[2] = (i & 0x0000FF00) >> 8;
+	out[3] = (i & 0x000000FF);
+}
+
 SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
 
@@ -307,16 +318,47 @@ int main(int argc, char** argv) {
 
 			//Send data only if the Myo is on arm and unlocked.
 			if (collector.onArm && collector.isUnlocked) {
-				//First check if pose is fist or spread fingers
-				if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
+				//If the pose is unknown, then check if the arm is raised
+				if (abs(collector.pitch) >= PI / 12) {
+					//Same as the turning, constrain to [-60, 60] degrees
+					float f = max(-PI / 3, min(PI / 3, collector.pitch));
+
+					//Check if our pitch is more than 15 degrees
+					if (abs(f) >= PI / 12) {
+						action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
+
+						//Decrement by 15 degrees
+						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
+						//even if f is negative.
+						f -= copysign(PI / 12, f);
+						//Because we subtracted 15 degrees, the maximum absolute value that f can have
+						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
+						f = abs(f / (PI / 4));
+						//Convert to integer
+						int32_t paramData = static_cast<int32_t>(f * PARAM_INT_MAX);
+						//Convert to raw bytes
+						char c[4];
+						int32ToChars(paramData, c);
+						param = c;
+					}
+					else {
+						action = ACT_REST;
+					}
+				}
+				//Check if pose is fist or spread fingers
+				else if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
 					action = collector.currentPose == myo::Pose::fist ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
 
 					//Take the roll of the Myo and make that the param data
 					//First constrain to [-60, 60], then divide to obtain a fraction that represents how much to turn
 					//Note the roll, pitch and yaw are in radians
 					float f = max(-PI / 3, min(PI / 3, collector.roll)) / (PI / 3);
-					//Cast to char* to take raw bytes
-					param = reinterpret_cast<char*>(&f);
+					//Convert to an integer
+					int32_t paramData = static_cast<int32_t>(f * PARAM_INT_MAX);
+					//Convert the integer to raw bytes
+					char c[4];
+					int32ToChars(paramData, c);
+					param = c;
 				}
 				//Check if pose is intake or outtake
 				else if (collector.currentPose == myo::Pose::waveIn) {
@@ -324,29 +366,6 @@ int main(int argc, char** argv) {
 				}
 				else if (collector.currentPose == myo::Pose::waveOut) {
 					action = ACT_OUTTAKE;
-				}
-				//If the pose is unknown, then check if the arm is raised
-				else if (collector.currentPose == myo::Pose::unknown || collector.currentPose == myo::Pose::rest) {
-					//Same as the turning, constrain to [-60, 60] degrees
-					float f = max(-PI / 3, min(PI / 3, collector.pitch));
-
-					//Check if our pitch is more than 15 degrees
-					if (abs(f) >= PI / 12) {
-						action = f > 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR;
-
-						//Decrement by 15 degrees
-						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
-						//even if f is negative.
-						f -= copysign(PI / 12, f);
-						//Because we subtracted 15 degrees, the maximum absolute value that f can have
-						//is now 60-15=45 degrees.
-						f /= PI / 4;
-						//Cast to char* to take raw bytes
-						param = reinterpret_cast<char*>(&f);
-					}
-					else {
-						action = ACT_REST;
-					}
 				}
 				else {
 					action = ACT_REST;
