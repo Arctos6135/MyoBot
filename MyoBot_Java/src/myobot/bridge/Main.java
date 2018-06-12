@@ -54,8 +54,8 @@ public class Main {
 	
 	//Used later to convert the raw bytes from the socket to an integer action code
 	public static int charsToInt(char[] data) {
-		return ((byte) (data[0] & 0xFF) << 24) | ((byte) (data[1] & 0xFF) << 16) | 
-				((byte) (data[2] & 0xFF) << 8) | (byte) (data[3] & 0xFF);
+		return ((data[0] & 0xFF) * 0x1000000) + ((data[1] & 0xFF) * 0x10000) + 
+				((data[2] & 0xFF) * 0x100) + (data[3] & 0xFF);
 	}
 	//Used later to convert the array of bytes from the socket to a hexadecimal representation
 	private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -133,9 +133,10 @@ public class Main {
 				//Output information
 				int paramInt = charsToInt(param);
 				String rawBits = int32RawBits(paramInt);
+				int pi2 = (int) (param[0] & 0xFF);
 				String message = "Action Sent: " + Integer.toHexString(action) + " (" +
 						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")        " +
-						"Parameter Data: 0x" + charsToHex(param) + " (" + paramInt + ", 0b" + rawBits + ")";
+						"Parameter Data: 0x" + charsToHex(param) + " (" + pi2 + ", 0b" + rawBits + ")";
 				//Output backspace characters to erase the last line before outputting our new message.
 				//This makes sure the line is cleared
 				//First, output backspaces to go to the beginning of the line

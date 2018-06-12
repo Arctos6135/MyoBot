@@ -87,7 +87,7 @@ void cleanupSockets(SOCKET& listener, SOCKET& client) {
 }
 
 //Sends an action over to the Java program
-void sendAction(SOCKET& sock, const uint32_t msg, const char* param) {
+void sendAction(SOCKET& sock, const uint32_t msg, const unsigned char* param) {
 	//The 8 bytes consist of 4 bytes of action code and 4 bytes of param
 	//For more details refer to MyoBot_Cpp.cpp
 	char data[8];

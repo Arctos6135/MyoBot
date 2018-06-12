@@ -28,7 +28,7 @@
 #define ACT_OUTTAKE (uint32_t) 0x0008
 
 //A null parameter message. Default value to be sent if the action does not use parameters.
-const char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
+const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
 //Some params are sent as integers. This is the max value the integer
 //can be.
@@ -337,7 +337,7 @@ int main(int argc, char** argv) {
 
 			//Initialize values for our default action and null param
 			uint32_t action = ACT_REST;
-			const char* param = PARAM_NULL;
+			const unsigned char* param = PARAM_NULL;
 
 			//Send data only if the Myo is on arm and unlocked.
 			if (collector.onArm && collector.isUnlocked) {
@@ -359,11 +359,9 @@ int main(int argc, char** argv) {
 						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
 						f = abs(f / (PI / 4));
 						//Convert to integer
-						f = floorf(f * PARAM_INT_MAX);
-						uint32_t paramData = static_cast<uint32_t>(f);
-						//Convert to raw bytes
-						char c[4];
-						int32ToCharsBigEndian(paramData, c);
+						f = floorf(f * 0xFF);
+						unsigned char paramData = static_cast<unsigned char>(f);
+						unsigned char c[4] = {paramData, 0x00, 0x00, 0x00};
 						param = c;
 					}
 					else {
@@ -377,13 +375,13 @@ int main(int argc, char** argv) {
 					//Take the roll of the Myo and make that the param data
 					//First constrain to [-60, 60], then divide to obtain a fraction that represents how much to turn
 					//Note the roll, pitch and yaw are in radians
-					float f = max(-PI / 3, min(PI / 3, collector.roll)) / (PI / 3);
+					//float f = max(-PI / 3, min(PI / 3, collector.roll)) / (PI / 3);
 					//Convert to an integer
-					int32_t paramData = static_cast<int32_t>(f * PARAM_INT_MAX);
+					//unsigned char paramData = static_cast<unsigned char>(f * 0xFF);
 					//Convert the integer to raw bytes
-					char c[4];
-					int32ToChars(paramData, c);
-					param = c;
+					//char c[4];
+					//c[0] = paramData;
+					//param = c;
 				}
 				//Check if pose is intake or outtake
 				else if (collector.currentPose == myo::Pose::waveIn) {
