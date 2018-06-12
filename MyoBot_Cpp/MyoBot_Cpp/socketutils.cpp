@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "bitops.h"
 
 #define PORT "6135"
 
@@ -83,14 +84,6 @@ void cleanupSockets(SOCKET& listener, SOCKET& client) {
 	closesocket(client);
 	closesocket(listener);
 	WSACleanup();
-}
-
-//Converts a 32-bit integer to an array of chars.
-void int32ToChars(int32_t i, char* out) {
-	out[0] = (i & 0xFF000000) >> 24;
-	out[1] = (i & 0x00FF0000) >> 16;
-	out[2] = (i & 0x0000FF00) >> 8;
-	out[3] = (i & 0x000000FF);
 }
 
 //Sends an action over to the Java program

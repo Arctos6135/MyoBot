@@ -1,5 +1,4 @@
-
-#include <inttypes.h>
+#include "stdafx.h"
 
 bool isBigEndian() {
 	volatile union {

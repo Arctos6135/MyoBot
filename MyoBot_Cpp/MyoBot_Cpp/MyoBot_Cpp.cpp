@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "socketutils.h"
+#include "bitops.h"
 
 #pragma warning(disable: 4244)
 
@@ -284,12 +285,14 @@ BOOL WINAPI ConsoleHandler(DWORD dwCtrlType) {
 	return TRUE;
 }
 
-void int32ToChars(int32_t i, char* out) {
-	out[0] = (i & 0xFF000000) >> 24;
-	out[1] = (i & 0x00FF0000) >> 16;
-	out[2] = (i & 0x0000FF00) >> 8;
-	out[3] = (i & 0x000000FF);
+inline float toDegrees(float radians) {
+	return radians * (180 / PI);
 }
+inline float roundToPlaces(float f, int n) {
+	float f2 = pow(10, n);
+	return roundf(f * f2) / f2;
+}
+#define _DISP(n) roundToPlaces(toDegrees(n), 2)
 
 SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
@@ -322,6 +325,7 @@ int main(int argc, char** argv) {
 		std::cout << "Warning: The Myo's orientation is not initialized. Please put your arm to the front "
 		<< "with your palm parallel to the ground, and then press Alt+I to record your reference orientation." << std::endl;
 
+		int lastStatusLen = 0;
 		while (true) {
 			if (exitFlag)
 				break;
@@ -338,11 +342,11 @@ int main(int argc, char** argv) {
 			//Send data only if the Myo is on arm and unlocked.
 			if (collector.onArm && collector.isUnlocked) {
 				//If the pose is unknown, then check if the arm is raised
-				if (abs(collector.pitch) >= PI / 12) {
+				if (abs(collector.roll) >= PI / 12) {
 					//Same as the turning, constrain to [-60, 60] degrees
-					float f = max(-PI / 3, min(PI / 3, collector.pitch));
+					float f = max(-PI / 3, min(PI / 3, collector.roll));
 
-					//Check if our pitch is more than 15 degrees
+					//Check if our roll is more than 15 degrees
 					if (abs(f) >= PI / 12) {
 						//Raising yields a negative pitch
 						action = (f <= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
@@ -359,7 +363,7 @@ int main(int argc, char** argv) {
 						uint32_t paramData = static_cast<uint32_t>(f);
 						//Convert to raw bytes
 						char c[4];
-						int32ToChars(paramData, c);
+						int32ToCharsBigEndian(paramData, c);
 						param = c;
 					}
 					else {
@@ -399,14 +403,23 @@ int main(int argc, char** argv) {
 				sendAction(clientSocket, ACT_REST, PARAM_NULL);
 			}
 
-			//Spaces are added here to keep the length consistent (see below)
-			//std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
-			//myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
+			std::string myoState("Myo Unlock State: ");
+			myoState += (collector.isUnlocked ? "Unlocked " : "Locked ");
+			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
+			myoState += "    Orientation: roll=" + std::to_string(_DISP(collector.roll));
+			myoState += " pitch=" + std::to_string(_DISP(collector.pitch));
+			myoState += " yaw=" + std::to_string(_DISP(collector.yaw));
 			//Concatenate an empty string in the end to keep the length consistent
 			//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
 			//However if our new string is shorter than our old one, then some characters of the old string
 			//will still remain.
-			//std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
+			if (lastStatusLen <= myoState.length()) {
+				std::cout << "\r" << myoState << std::flush;
+			}
+			else {
+				std::cout << "\r" << myoState << std::string(lastStatusLen - myoState.length(), ' ') << std::flush;
+			}
+			lastStatusLen = myoState.length();
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);

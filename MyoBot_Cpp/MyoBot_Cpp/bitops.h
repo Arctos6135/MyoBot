@@ -1,6 +1,6 @@
 #pragma once
 
-#include <inttypes.h>
+#include "stdafx.h"
 
 extern bool isBigEndian();
 
