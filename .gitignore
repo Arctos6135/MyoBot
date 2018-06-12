@@ -11,3 +11,5 @@ Release/
 ipch/
 # Include MyoBot/bin however
 !/bin/
+# Logs
+*.log

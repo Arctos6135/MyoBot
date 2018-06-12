@@ -1,7 +1,10 @@
 package myobot.bridge;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.util.HashMap;
@@ -30,7 +33,7 @@ public class Main {
 	
 	//The entry that stores the action is a single value, while the parameter entries are an array of 4
 	static NetworkTableEntry actionEntry;
-	static NetworkTableEntry[] paramEntries;
+	static NetworkTableEntry[] paramEntries = new NetworkTableEntry[4];
 	
 	//This map matches action codes to their corresponding names so we can output the name of the action
 	static HashMap<Integer, String> actionNames;
@@ -66,17 +69,26 @@ public class Main {
 	    }
 	    return new String(hexChars);
 	}
+	public static float bytes2Float(byte[] data) {
+		int i = ((byte) data[0] << 24) | ((byte) data[1] << 16) | ((byte) data[2] << 8) | (byte) data[3];
+		
+		return Float.intBitsToFloat(i);
+	}
 	
 	//Length of last message
 	//Used to overwrite last message
 	static int lastMessageLen = 0;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws FileNotFoundException {
 		//Prompt for team number, which is used later for the NetworkTables connection.
 		Scanner stdin = new Scanner(System.in);
 		System.out.print("Enter FRC Team Number: ");
 		int teamNumber = stdin.nextInt();
 		stdin.close();
+		
+		//Redirect error log to file
+		PrintStream pw = new PrintStream(new FileOutputStream("bridge.log"));
+		System.setErr(pw);
 		
 		//Create tables and entries
 		tableInstance = NetworkTableInstance.getDefault();
@@ -90,8 +102,8 @@ public class Main {
 		//Default update rate is too slow
 		//Change to 20 times a second instead
 		tableInstance.setUpdateRate(1.0 / 20);
-		tableInstance.startClientTeam(teamNumber);
-		tableInstance.startDSClient();
+		//tableInstance.startClientTeam(teamNumber);
+		//tableInstance.startDSClient();
 		
 		try {
 			Socket socket = new Socket("localhost", PORT);
@@ -116,11 +128,20 @@ public class Main {
 				}
 				
 				//Output information
-				String message = "Action Sent: " + Integer.toHexString(action) + "(" +
-						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")\n" +
-						"Parameter Data: 0x" + bytesToHex(param);
+				String message = "Action Sent: " + Integer.toHexString(action) + " (" +
+						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")        " +
+						"Parameter Data: 0x" + bytesToHex(param) + " (" + bytes2Float(param) + ")";
 				//Output backspace characters to erase the last line before outputting our new message.
 				//This makes sure the line is cleared
+				//First, output backspaces to go to the beginning of the line
+				for(int i = 0; i < lastMessageLen; i ++) {
+					System.out.print("\b");
+				}
+				//Then output spaces to overwrite the data from last time
+				for(int i = 0; i < lastMessageLen; i ++) {
+					System.out.print(" ");
+				}
+				//Finally, output backspaces again to return to the beginning of the line again
 				for(int i = 0; i < lastMessageLen; i ++) {
 					System.out.print("\b");
 				}
@@ -140,6 +161,7 @@ public class Main {
 				System.err.println("Fatal Error: " + e.toString());
 			}
 		}
+		pw.flush();
 	}
 
 }

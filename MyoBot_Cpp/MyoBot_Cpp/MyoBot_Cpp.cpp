@@ -353,20 +353,20 @@ int main(int argc, char** argv) {
 				}
 
 				sendAction(clientSocket, action, param);
-				
-				//Spaces are added here to keep the length consistent (see below)
-				std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
-				myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
-				//Concatenate an empty string in the end to keep the length consistent
-				//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
-				//However if our new string is shorter than our old one, then some characters of the old string
-				//will still remain.
-				std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
 			}
 			else {
 				//If the Myo is not on arm, or is locked, send the do nothing message to make sure everything stops.
 				sendAction(clientSocket, ACT_REST, PARAM_NULL);
 			}
+
+			//Spaces are added here to keep the length consistent (see below)
+			std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
+			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
+			//Concatenate an empty string in the end to keep the length consistent
+			//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
+			//However if our new string is shorter than our old one, then some characters of the old string
+			//will still remain.
+			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);
@@ -375,6 +375,10 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << std::endl;
 		std::cerr << "Press enter to continue.";
 		std::cin.ignore();
+
+		//Make sure the Myo is locked when we exit
+		if (collector.theMyo)
+			lockMyo();
 
 		//Clean up message loop thread
 		//Signal it to exit
@@ -390,6 +394,10 @@ int main(int argc, char** argv) {
 		std::cout << "Press enter to continue." << std::endl;
 		std::cin.ignore();
 
+		//Make sure the Myo is locked when we exit
+		if (collector.theMyo)
+			lockMyo();
+
 		//Clean up message loop thread
 		//Signal it to exit
 		exitFlag = true;
@@ -400,6 +408,9 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
+	//Make sure the Myo is locked when we exit
+	if (collector.theMyo)
+		lockMyo();
 	//Clean up message loop thread
 	//Signal it to exit
 	exitFlag = true;
