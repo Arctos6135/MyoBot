@@ -27,6 +27,7 @@
 #define ACT_INTAKE (uint32_t) 0x0007
 #define ACT_OUTTAKE (uint32_t) 0x0008
 
+#define _DISP(n) roundToPlaces(toDegrees(n), 2)
 //A null parameter message. Default value to be sent if the action does not use parameters.
 const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
@@ -236,7 +237,7 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 		//Alt+I: Initialize orientation/update reference orientation
 		case 'I':
 			collector.setRefOrientation(collector.orientationRaw);
-			std::cout << "Reference orientation updated: roll=" << collector.refRoll << " pitch=" << collector.refPitch << " yaw=" << collector.refYaw << std::endl;
+			std::cout << "\nReference orientation updated: roll=" << _DISP(collector.refRoll) << " pitch=" << _DISP(collector.refPitch) << " yaw=" << _DISP(collector.refYaw) << std::endl;
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -292,7 +293,6 @@ inline float roundToPlaces(float f, int n) {
 	float f2 = pow(10, n);
 	return roundf(f * f2) / f2;
 }
-#define _DISP(n) roundToPlaces(toDegrees(n), 2)
 
 SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
