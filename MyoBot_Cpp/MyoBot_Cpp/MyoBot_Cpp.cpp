@@ -31,7 +31,7 @@ const char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
 //Some params are sent as integers. This is the max value the integer
 //can be.
-#define PARAM_INT_MAX 0x00FFFFFF
+#define PARAM_INT_MAX 0x7FFFFFFF
 
 //How many times data is sent per second
 #define UPDATE_FREQUENCY 2
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
 						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
 						f = abs(f / (PI / 4));
 						//Convert to integer
-						int32_t paramData = static_cast<int32_t>(f * PARAM_INT_MAX);
+						int32_t paramData = static_cast<int32_t>(floorf(f * PARAM_INT_MAX));
 						//Convert to raw bytes
 						char c[4];
 						int32ToChars(paramData, c);
