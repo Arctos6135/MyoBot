@@ -125,7 +125,7 @@ public:
 		orientationRaw = myo::Quaternion<float>(quat);
 
 		//Multiply by the inverse of the reference orientation to change perspective
-		orientation = quat * refOrientation;
+		orientation = refOrientation * quat;
 
 		//Calculate roll, pitch and yaw
 		//Code taken directly from the example
@@ -342,14 +342,13 @@ int main(int argc, char** argv) {
 			//Send data only if the Myo is on arm and unlocked.
 			if (collector.onArm && collector.isUnlocked) {
 				//If the pose is unknown, then check if the arm is raised
-				if (abs(collector.roll) >= PI / 12) {
+				if (abs(collector.pitch) >= PI / 12) {
 					//Same as the turning, constrain to [-60, 60] degrees
-					float f = max(-PI / 3, min(PI / 3, collector.roll));
+					float f = max(-PI / 3, min(PI / 3, collector.pitch));
 
-					//Check if our roll is more than 15 degrees
+					//Check if our pitch is more than 15 degrees
 					if (abs(f) >= PI / 12) {
-						//Raising yields a negative pitch
-						action = (f <= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
+						action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
 
 						//Decrement by 15 degrees
 						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
