@@ -86,11 +86,11 @@ void cleanupSockets(SOCKET& listener, SOCKET& client) {
 }
 
 //Converts a 32-bit integer to an array of chars.
-void int2Chars(uint32_t i, char* out) {
-	out[0] = (i & 0xF000) >> 24;
-	out[1] = (i & 0x0F00) >> 16;
-	out[2] = (i & 0x00F0) >> 8;
-	out[3] = (i & 0x000F);
+void int32ToChars(int32_t i, char* out) {
+	out[0] = (i & 0xFF000000) >> 24;
+	out[1] = (i & 0x00FF0000) >> 16;
+	out[2] = (i & 0x0000FF00) >> 8;
+	out[3] = (i & 0x000000FF);
 }
 
 //Sends an action over to the Java program
@@ -98,7 +98,7 @@ void sendAction(SOCKET& sock, const uint32_t msg, const char* param) {
 	//The 8 bytes consist of 4 bytes of action code and 4 bytes of param
 	//For more details refer to MyoBot_Cpp.cpp
 	char data[8];
-	int2Chars(msg, data);
+	int32ToChars(msg, data);
 	for (unsigned char i = 0; i < 4; i++) {
 		data[i + 4] = param[i];
 	}

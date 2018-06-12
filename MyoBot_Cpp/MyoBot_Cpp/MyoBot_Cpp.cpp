@@ -31,7 +31,7 @@ const char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
 //Some params are sent as integers. This is the max value the integer
 //can be.
-#define PARAM_INT_MAX 0x7FFFFFFF
+#define PARAM_INT_MAX 0x7FFFFFFE
 
 //How many times data is sent per second
 #define UPDATE_FREQUENCY 2
@@ -344,7 +344,8 @@ int main(int argc, char** argv) {
 
 					//Check if our pitch is more than 15 degrees
 					if (abs(f) >= PI / 12) {
-						action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
+						//Raising yields a negative pitch
+						action = (f <= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
 
 						//Decrement by 15 degrees
 						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
@@ -354,7 +355,8 @@ int main(int argc, char** argv) {
 						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
 						f = abs(f / (PI / 4));
 						//Convert to integer
-						int32_t paramData = static_cast<int32_t>(floorf(f * PARAM_INT_MAX));
+						f = floorf(f * PARAM_INT_MAX);
+						uint32_t paramData = static_cast<uint32_t>(f);
 						//Convert to raw bytes
 						char c[4];
 						int32ToChars(paramData, c);
@@ -398,13 +400,13 @@ int main(int argc, char** argv) {
 			}
 
 			//Spaces are added here to keep the length consistent (see below)
-			std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
-			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
+			//std::string myoState = (collector.isUnlocked ? "Unlocked " : "Locked ");
+			//myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
 			//Concatenate an empty string in the end to keep the length consistent
 			//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
 			//However if our new string is shorter than our old one, then some characters of the old string
 			//will still remain.
-			std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
+			//std::cout << "\r" << "Myo Unlock State: " << myoState << std::string(17 - myoState.length(), ' ');
 		}
 
 		cleanupSockets(listenerSocket, clientSocket);

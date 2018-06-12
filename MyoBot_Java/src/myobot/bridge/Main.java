@@ -53,7 +53,7 @@ public class Main {
 	public static final int PORT = 6135;
 	
 	//Used later to convert the raw bytes from the socket to an integer action code
-	public static int chars2Int(char[] data) {
+	public static int charsToInt(char[] data) {
 		return ((byte) (data[0] & 0xFF) << 24) | ((byte) (data[1] & 0xFF) << 16) | 
 				((byte) (data[2] & 0xFF) << 8) | (byte) (data[3] & 0xFF);
 	}
@@ -67,6 +67,15 @@ public class Main {
 	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
 	    }
 	    return new String(hexChars);
+	}
+	public static String int32RawBits(int i) {
+		int mask = 0x80000000;
+		char[] chars = new char[32];
+		for(int j = 0; j < 32; j ++) {
+			chars[j] = (i & mask) > 0 ? '1' : '0';
+			mask >>>= 1;
+		}
+		return new String(chars);
 	}
 	
 	//Length of last message
@@ -113,7 +122,7 @@ public class Main {
 					actionBytes[i] = buf[i];
 					param[i] = buf[i + 4];
 				}
-				int action = chars2Int(actionBytes);
+				int action = charsToInt(actionBytes);
 				
 				//Set the values to send them over NetworkTables
 				actionEntry.forceSetNumber(action);
@@ -122,9 +131,11 @@ public class Main {
 				}
 				
 				//Output information
+				int paramInt = charsToInt(param);
+				String rawBits = int32RawBits(paramInt);
 				String message = "Action Sent: " + Integer.toHexString(action) + " (" +
 						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")        " +
-						"Parameter Data: 0x" + charsToHex(param) + " (" + chars2Int(param) + ")";
+						"Parameter Data: 0x" + charsToHex(param) + " (" + paramInt + ", 0b" + rawBits + ")";
 				//Output backspace characters to erase the last line before outputting our new message.
 				//This makes sure the line is cleared
 				//First, output backspaces to go to the beginning of the line
