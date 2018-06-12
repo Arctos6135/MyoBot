@@ -6,8 +6,9 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-
+//Sets up the listener and client sockets
 void setupSockets(SOCKET& listener, SOCKET& client) {
+	//Most of the code in this method is from the example program provided by the Microsoft docs.
 	WSADATA wsaData;
 	int iResult;
 
@@ -70,6 +71,7 @@ void setupSockets(SOCKET& listener, SOCKET& client) {
 	std::cout << "Connection established." << std::endl;
 }
 
+//Clean up the client and listener sockets. The sockets will be closed, and Winsock will be cleaned up.
 void cleanupSockets(SOCKET& listener, SOCKET& client) {
 	if (shutdown(client, SD_SEND) == SOCKET_ERROR) {
 		std::runtime_error e = MAKE_EXCEPTION("Failed to shutdown socket: ", WSAGetLastError());
@@ -83,6 +85,7 @@ void cleanupSockets(SOCKET& listener, SOCKET& client) {
 	WSACleanup();
 }
 
+//Converts a 32-bit integer to an array of chars.
 void int2Chars(uint32_t i, char* out) {
 	out[0] = (i & 0xF000) >> 24;
 	out[1] = (i & 0x0F00) >> 16;
@@ -90,7 +93,10 @@ void int2Chars(uint32_t i, char* out) {
 	out[3] = (i & 0x000F);
 }
 
+//Sends an action over to the Java program
 void sendAction(SOCKET& sock, const uint32_t msg, const char* param) {
+	//The 8 bytes consist of 4 bytes of action code and 4 bytes of param
+	//For more details refer to MyoBot_Cpp.cpp
 	char data[8];
 	int2Chars(msg, data);
 	for (unsigned char i = 0; i < 4; i++) {

@@ -24,3 +24,4 @@
 #include <myo/myo.hpp>
 #include <atomic>
 #include <process.h>
+#include <cmath>
