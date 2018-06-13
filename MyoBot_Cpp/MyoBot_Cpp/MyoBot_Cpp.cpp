@@ -1,5 +1,5 @@
 // MyoBot_Cpp.cpp : Main file for the Myo data reader.
-//
+// IMPORTANT: The Myo must be worn with the Thalmic Labs logo downwards; otherwise the controls will be flipped.
 
 #include "stdafx.h"
 #include "socketutils.h"
@@ -39,9 +39,6 @@
 //Param: None
 #define ACT_OUTTAKE (uint32_t) 0x0008
 
-float toDegrees(float);
-float roundToPlaces(float, int);
-#define _DISP(n) roundToPlaces(toDegrees(n), 2)
 //A null parameter message. Default value to be sent if the action does not use parameters.
 const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
@@ -49,6 +46,10 @@ const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 #define UPDATE_FREQUENCY 4
 
 #define PI 3.14159265359
+
+float toDegrees(float);
+std::string toStringRound(float, size_t);
+#define _DISP(n) toStringRound(toDegrees(n), 1)
 
 /*
 	The following enum, class and functions deal with collecting data from the Myo.
@@ -94,6 +95,11 @@ public:
 	myo::Quaternion<float> orientationRaw;
 	//Keep a pointer so we can lock and unlock anytime
 	myo::Myo* theMyo = nullptr;
+
+	//If set to true, Euler angles will be inverted
+	//Since the direction of the roll, pitch and yaw depend on the Myo's x direction, this may be set
+	//if the armband is worn backwards.
+	bool invertAngles = false;
 
 	SingleMyoDataCollector() : active(true), onArm(false), isUnlocked(false), currentPose(),
 	roll(0), pitch(0), yaw(0), refRoll(0), refPitch(0), refYaw(0) {
@@ -145,6 +151,12 @@ public:
 		pitch = asin(max(-1.0f, min(1.0f, 2.0f * (orientation.w() * orientation.y() - orientation.z() * orientation.x()))));
 		yaw = atan2(2.0f * (orientation.w() * orientation.z() + orientation.x() * orientation.y()),
 			1.0f - 2.0f * (orientation.y() * orientation.y() + orientation.z() * orientation.z()));
+
+		if (invertAngles) {
+			roll *= -1;
+			pitch *= -1;
+			yaw *= -1;
+		}
 	}
 
 	void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection, float rotation, myo::WarmupState warmupState) override {
@@ -184,6 +196,12 @@ public:
 		refPitch = asin(max(-1.0f, min(1.0f, 2.0f * (ref.w() * ref.y() - ref.z() * ref.x()))));
 		refYaw = atan2(2.0f * (ref.w() * ref.z() + ref.x() * ref.y()),
 			1.0f - 2.0f * (ref.y() * ref.y() + ref.z() * ref.z()));
+
+		if (invertAngles) {
+			refRoll *= -1;
+			refPitch *= -1;
+			refYaw *= -1;
+		}
 	}
 };
 
@@ -244,10 +262,15 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 		case 'M':
 			unlockMode = ((unlockMode == MyoUnlockMode::UNLOCK_HOLD) ? MyoUnlockMode::UNLOCK_NORMAL : MyoUnlockMode::UNLOCK_HOLD);
 			break;
-		//Alt+I: Initialize orientation/update reference orientation
-		case 'I':
+		//Alt+O: Initialize orientation/update reference orientation
+		case 'O':
 			collector.setRefOrientation(collector.orientationRaw);
 			std::cout << "\nReference orientation updated: roll=" << _DISP(collector.refRoll) << " pitch=" << _DISP(collector.refPitch) << " yaw=" << _DISP(collector.refYaw) << std::endl;
+			break;
+		//Alt+I: Invert Euler angles (in case the armband is worn backwards)
+		case 'I':
+			collector.invertAngles = !collector.invertAngles;
+			std::cout << "\nOrientation angles inverted." << std::endl;
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -299,9 +322,9 @@ BOOL WINAPI ConsoleHandler(DWORD dwCtrlType) {
 inline float toDegrees(float radians) {
 	return radians * (180 / PI);
 }
-inline float roundToPlaces(float f, int n) {
-	float f2 = pow(10, n);
-	return roundf(f * f2) / f2;
+inline std::string toStringRound(float f, size_t decimals) {
+	std::string s = std::to_string(f);
+	return s.substr(0, decimals == 0 ? s.find('.') : s.find('.') + decimals + 1);
 }
 
 SOCKET listenerSocket, clientSocket;
@@ -310,6 +333,7 @@ int main(int argc, char** argv) {
 	exitFlag = false;
 	//Add our console routine handler
 	SetConsoleCtrlHandler(&ConsoleHandler, TRUE);
+	std::cout << std::fixed << std::setprecision(1);
 
 	//ID of our message loop thread
 	unsigned int threadId;
@@ -333,7 +357,7 @@ int main(int argc, char** argv) {
 		std::cout << "Myo found!" << std::endl;
 		hub.addListener(&collector);
 		std::cout << "Warning: The Myo's orientation is not initialized. Please put your arm to the front "
-		<< "with your palm parallel to the ground, and then press Alt+I to record your reference orientation." << std::endl;
+		<< "with your palm parallel to the ground, and then press Alt+O to record your reference orientation." << std::endl;
 
 		size_t lastStatusLen = 0;
 		while (true) {
@@ -358,8 +382,7 @@ int main(int argc, char** argv) {
 
 					//Check if our pitch is more than 15 degrees
 					if (abs(f) >= PI / 12) {
-						//Raising yields a negative pitch
-						action = (f <= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
+						action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
 
 						//Decrement by 15 degrees
 						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
@@ -385,14 +408,14 @@ int main(int argc, char** argv) {
 					//Check if roll is greater than 10 degrees to account for human error
 					if (abs(collector.roll) >= PI / 18) {
 						//Take the roll of the Myo and make that the param data
-						//First constrain to [-60, 60], then divide to obtain a fraction that represents how much to turn
+						//First constrain to [-45, 45], then divide to obtain a fraction that represents how much to turn
 						//Note the roll, pitch and yaw are in radians
-						float f = max(-PI / 3, min(PI / 3, collector.roll)) / (PI / 3);
+						float f = max(-PI / 4, min(PI / 4, collector.roll)) / (PI / 4);
 						//Take the sign/direction and convert to integer
 						//Left is positive
 						unsigned char direction = f > 0 ? 1 : 0;
 						//Multiply by 0xFFFF to get the integer representation
-						uint16_t paramData = static_cast<uint16_t>(floorf(f * 0xFFFF));
+						uint16_t paramData = static_cast<uint16_t>(floorf(abs(f) * 0xFFFF));
 
 						unsigned char c[4] = { paramData >> 8, paramData & 0xFF, direction, 0x00 };
 						param = c;
@@ -416,12 +439,13 @@ int main(int argc, char** argv) {
 				sendAction(clientSocket, ACT_REST, PARAM_NULL);
 			}
 
-			std::string myoState("Myo Unlock State: ");
+			std::string myoState("Myo Status: ");
 			myoState += (collector.isUnlocked ? "Unlocked " : "Locked ");
 			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
-			myoState += "    Orientation: roll=" + std::to_string(_DISP(collector.roll));
-			myoState += " pitch=" + std::to_string(_DISP(collector.pitch));
-			myoState += " yaw=" + std::to_string(_DISP(collector.yaw));
+			myoState += "    Roll=" + _DISP(collector.roll);
+			myoState += " Pitch=" + _DISP(collector.pitch);
+			myoState += " Yaw=" + _DISP(collector.yaw);
+			myoState += collector.invertAngles ? " (Inverted)" : " (Normal)";
 			//Concatenate an empty string in the end to keep the length consistent
 			//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
 			//However if our new string is shorter than our old one, then some characters of the old string

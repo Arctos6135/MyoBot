@@ -8,6 +8,7 @@
 #include "targetver.h"
 
 #include <iostream>
+#include <iomanip>
 #include <tchar.h>
 
 #ifndef WIN32_LEAN_AND_MEAN

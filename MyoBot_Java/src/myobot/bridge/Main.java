@@ -85,7 +85,7 @@ public class Main {
 	public static void main(String[] args) throws FileNotFoundException {
 		//Prompt for team number, which is used later for the NetworkTables connection.
 		Scanner stdin = new Scanner(System.in);
-		System.out.print("Enter FRC Team Number: ");
+		System.out.print("Enter FRC Team Number (Enter 0 For Dry Run): ");
 		int teamNumber = stdin.nextInt();
 		stdin.close();
 		
@@ -104,9 +104,11 @@ public class Main {
 		
 		//Default update rate is too slow
 		//Change to 20 times a second instead
-		tableInstance.setUpdateRate(1.0 / 20);
-		//tableInstance.startClientTeam(teamNumber);
-		//tableInstance.startDSClient();
+		if(teamNumber != 0) {
+			tableInstance.setUpdateRate(1.0 / 20);
+			tableInstance.startClientTeam(teamNumber);
+			tableInstance.startDSClient();
+		}
 		
 		try {
 			Socket socket = new Socket("localhost", PORT);
@@ -131,11 +133,9 @@ public class Main {
 				}
 				
 				//Output information
-				int paramInt = charsToInt(param);
-				String rawBits = int32RawBits(paramInt);
 				String message = "Action Sent: " + Integer.toHexString(action) + " (" +
-						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")        " +
-						"Parameter Data: 0x" + charsToHex(param) + " (" + paramInt + ", 0b" + rawBits + ")";
+						(actionNames.containsKey(action) ? actionNames.get(action) : "Unknown") + ")    " +
+						"Parameter Data: 0x" + charsToHex(param);
 				//Output backspace characters to erase the last line before outputting our new message.
 				//This makes sure the line is cleared
 				//First, output backspaces to go to the beginning of the line
