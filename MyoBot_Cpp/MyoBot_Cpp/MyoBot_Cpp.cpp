@@ -6,6 +6,7 @@
 #include "bitops.h"
 
 #pragma warning(disable: 4244)
+#pragma warning(disable: 4838)
 
 /*
 	Each message that this program sends over to the bridge program consists of 8 bytes.
@@ -17,15 +18,26 @@
 	can vary according to action.
 */
 //Action code set
-#define ACT_REST (uint32_t) 0x0000 //Param: None
-#define ACT_DRIVEFORWARD (uint32_t) 0x0001 //Param: 
-#define ACT_TURNLEFT (uint32_t) 0x0002 //Unused in the current version; retained for compatibility
-#define ACT_TURNRIGHT (uint32_t) 0x0003 //Unused in the current version; retained for compatibility
-#define ACT_DRIVEBACK (uint32_t) 0x0004 //Param: 
-#define ACT_RAISEELEVATOR (uint32_t) 0x0005 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
-#define ACT_LOWERELEVATOR (uint32_t) 0x0006 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
-#define ACT_INTAKE (uint32_t) 0x0007 //Param: None
-#define ACT_OUTTAKE (uint32_t) 0x0008 //Param: None
+//Param: None
+#define ACT_REST (uint32_t) 0x0000
+//Param: First two bytes store an unsigned 16 bit integer representing how much to turn (big endian),
+//third byte stores the turn direction (1 for left and 0 for right)
+#define ACT_DRIVEFORWARD (uint32_t) 0x0001
+//Unused in the current version; retained for compatibility
+#define ACT_TURNLEFT (uint32_t) 0x0002
+//Unused in the current version; retained for compatibility
+#define ACT_TURNRIGHT (uint32_t) 0x0003 
+//Param: First two bytes store an unsigned 16 bit integer representing how much to turn (big endian),
+//third byte stores the turn direction (1 for left and 0 for right)
+#define ACT_DRIVEBACK (uint32_t) 0x0004
+//Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
+#define ACT_RAISEELEVATOR (uint32_t) 0x0005 
+//Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
+#define ACT_LOWERELEVATOR (uint32_t) 0x0006 
+//Param: None
+#define ACT_INTAKE (uint32_t) 0x0007
+//Param: None
+#define ACT_OUTTAKE (uint32_t) 0x0008
 
 float toDegrees(float);
 float roundToPlaces(float, int);
@@ -323,7 +335,7 @@ int main(int argc, char** argv) {
 		std::cout << "Warning: The Myo's orientation is not initialized. Please put your arm to the front "
 		<< "with your palm parallel to the ground, and then press Alt+I to record your reference orientation." << std::endl;
 
-		int lastStatusLen = 0;
+		size_t lastStatusLen = 0;
 		while (true) {
 			if (exitFlag)
 				break;
@@ -370,16 +382,21 @@ int main(int argc, char** argv) {
 				else if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
 					action = collector.currentPose == myo::Pose::fist ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
 
-					//Take the roll of the Myo and make that the param data
-					//First constrain to [-60, 60], then divide to obtain a fraction that represents how much to turn
-					//Note the roll, pitch and yaw are in radians
-					//float f = max(-PI / 3, min(PI / 3, collector.roll)) / (PI / 3);
-					//Convert to an integer
-					//unsigned char paramData = static_cast<unsigned char>(f * 0xFF);
-					//Convert the integer to raw bytes
-					//char c[4];
-					//c[0] = paramData;
-					//param = c;
+					//Check if roll is greater than 10 degrees to account for human error
+					if (abs(collector.roll) >= PI / 18) {
+						//Take the roll of the Myo and make that the param data
+						//First constrain to [-60, 60], then divide to obtain a fraction that represents how much to turn
+						//Note the roll, pitch and yaw are in radians
+						float f = max(-PI / 3, min(PI / 3, collector.roll)) / (PI / 3);
+						//Take the sign/direction and convert to integer
+						//Left is positive
+						unsigned char direction = f > 0 ? 1 : 0;
+						//Multiply by 0xFFFF to get the integer representation
+						uint16_t paramData = static_cast<uint16_t>(floorf(f * 0xFFFF));
+
+						unsigned char c[4] = { paramData >> 8, paramData & 0xFF, direction, 0x00 };
+						param = c;
+					}
 				}
 				//Check if pose is intake or outtake
 				else if (collector.currentPose == myo::Pose::waveIn) {
