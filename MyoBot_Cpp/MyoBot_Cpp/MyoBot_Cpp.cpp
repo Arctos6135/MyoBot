@@ -17,26 +17,24 @@
 	can vary according to action.
 */
 //Action code set
-#define ACT_REST (uint32_t) 0x0000
-#define ACT_DRIVEFORWARD (uint32_t) 0x0001
+#define ACT_REST (uint32_t) 0x0000 //Param: None
+#define ACT_DRIVEFORWARD (uint32_t) 0x0001 //Param: 
 #define ACT_TURNLEFT (uint32_t) 0x0002 //Unused in the current version; retained for compatibility
 #define ACT_TURNRIGHT (uint32_t) 0x0003 //Unused in the current version; retained for compatibility
-#define ACT_DRIVEBACK (uint32_t) 0x0004
-#define ACT_RAISEELEVATOR (uint32_t) 0x0005
-#define ACT_LOWERELEVATOR (uint32_t) 0x0006
-#define ACT_INTAKE (uint32_t) 0x0007
-#define ACT_OUTTAKE (uint32_t) 0x0008
+#define ACT_DRIVEBACK (uint32_t) 0x0004 //Param: 
+#define ACT_RAISEELEVATOR (uint32_t) 0x0005 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
+#define ACT_LOWERELEVATOR (uint32_t) 0x0006 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
+#define ACT_INTAKE (uint32_t) 0x0007 //Param: None
+#define ACT_OUTTAKE (uint32_t) 0x0008 //Param: None
 
+float toDegrees(float);
+float roundToPlaces(float, int);
 #define _DISP(n) roundToPlaces(toDegrees(n), 2)
 //A null parameter message. Default value to be sent if the action does not use parameters.
 const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
-//Some params are sent as integers. This is the max value the integer
-//can be.
-#define PARAM_INT_MAX 0x7FFFFFFE
-
 //How many times data is sent per second
-#define UPDATE_FREQUENCY 2
+#define UPDATE_FREQUENCY 4
 
 #define PI 3.14159265359
 
@@ -348,7 +346,8 @@ int main(int argc, char** argv) {
 
 					//Check if our pitch is more than 15 degrees
 					if (abs(f) >= PI / 12) {
-						action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
+						//Raising yields a negative pitch
+						action = (f <= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
 
 						//Decrement by 15 degrees
 						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
@@ -358,9 +357,9 @@ int main(int argc, char** argv) {
 						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
 						f = abs(f / (PI / 4));
 						//Convert to integer
-						f = floorf(f * 0xFF);
-						unsigned char paramData = static_cast<unsigned char>(f);
-						unsigned char c[4] = {paramData, 0x00, 0x00, 0x00};
+						uint16_t paramData = static_cast<uint16_t>(floorf(f * 0xFFFF));
+
+						unsigned char c[4] = { paramData >> 8, paramData & 0xFF, 0x00, 0x00};
 						param = c;
 					}
 					else {
