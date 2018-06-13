@@ -9,35 +9,34 @@
 #pragma warning(disable: 4838)
 
 /*
-	Each message that this program sends over to the bridge program consists of 8 bytes.
+	Each message that this program sends over to the bridge program consists of 6 bytes.
 
-	The first 4 bytes form a 32-bit integer (big endian).
-	This integer value determines the 'action' that is to be performed.
+	The first 2 bytes form a 16 bit integer that is the action code. This dicates which action is to be performed.
 
 	The last 4 bytes are the 'parameters' of the action. These bytes can represent anything and 
 	can vary according to action.
 */
 //Action code set
 //Param: None
-#define ACT_REST (uint32_t) 0x0000
+#define ACT_REST (uint16_t) 0x0000
 //Param: First two bytes store an unsigned 16 bit integer representing how much to turn (big endian),
 //third byte stores the turn direction (1 for left and 0 for right)
-#define ACT_DRIVEFORWARD (uint32_t) 0x0001
+#define ACT_DRIVEFORWARD (uint16_t) 0x0001
 //Unused in the current version; retained for compatibility
-#define ACT_TURNLEFT (uint32_t) 0x0002
+#define ACT_TURNLEFT (uint16_t) 0x0002
 //Unused in the current version; retained for compatibility
-#define ACT_TURNRIGHT (uint32_t) 0x0003 
+#define ACT_TURNRIGHT (uint16_t) 0x0003 
 //Param: First two bytes store an unsigned 16 bit integer representing how much to turn (big endian),
 //third byte stores the turn direction (1 for left and 0 for right)
-#define ACT_DRIVEBACK (uint32_t) 0x0004
+#define ACT_DRIVEBACK (uint16_t) 0x0004
 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
-#define ACT_RAISEELEVATOR (uint32_t) 0x0005 
+#define ACT_RAISEELEVATOR (uint16_t) 0x0005 
 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
-#define ACT_LOWERELEVATOR (uint32_t) 0x0006 
+#define ACT_LOWERELEVATOR (uint16_t) 0x0006 
 //Param: None
-#define ACT_INTAKE (uint32_t) 0x0007
+#define ACT_INTAKE (uint16_t) 0x0007
 //Param: None
-#define ACT_OUTTAKE (uint32_t) 0x0008
+#define ACT_OUTTAKE (uint16_t) 0x0008
 
 //A null parameter message. Default value to be sent if the action does not use parameters.
 const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
@@ -362,7 +361,7 @@ int main(int argc, char** argv) {
 		<< "with your palm parallel to the ground, and then press Alt+O to record your reference orientation." << std::endl;
 
 		size_t lastStatusLen = 0;
-		uint32_t lastAction = ACT_REST;
+		uint16_t lastAction = ACT_REST;
 		while (true) {
 			if (exitFlag)
 				break;
@@ -373,7 +372,7 @@ int main(int argc, char** argv) {
 				break;
 
 			//Initialize values for our default action and null param
-			uint32_t action = ACT_REST;
+			uint16_t action = ACT_REST;
 			const unsigned char* param = PARAM_NULL;
 
 			//Send data only if the Myo is on arm and unlocked.

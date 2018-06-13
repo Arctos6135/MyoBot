@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "bitops.h"
+#include "socketutils.h"
 
 #define PORT "6135"
 
@@ -87,15 +88,15 @@ void cleanupSockets(SOCKET& listener, SOCKET& client) {
 }
 
 //Sends an action over to the Java program
-void sendAction(SOCKET& sock, const uint32_t msg, const unsigned char* param) {
-	//The 8 bytes consist of 4 bytes of action code and 4 bytes of param
+void sendAction(SOCKET& sock, const uint16_t msg, const unsigned char* param) {
+	//The 6 bytes consist of 2 bytes of action code and 4 bytes of param
 	//For more details refer to MyoBot_Cpp.cpp
-	char data[8];
-	int32ToChars(msg, data);
-	for (unsigned char i = 0; i < 4; i++) {
-		data[i + 4] = param[i];
+	char data[MESSAGE_SIZE];
+	int16ToChars(msg, data);
+	for (unsigned char i = 0; i < PARAM_SIZE; i++) {
+		data[i + ACTION_SIZE] = param[i];
 	}
-	if (send(sock, data, 8, NULL) == SOCKET_ERROR) {
+	if (send(sock, data, MESSAGE_SIZE, NULL) == SOCKET_ERROR) {
 		throw MAKE_EXCEPTION("Failed to send: ", WSAGetLastError());
 	}
 }

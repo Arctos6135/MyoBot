@@ -27,6 +27,10 @@ public class Main {
 	public static final String ACTION_ENTRY_NAME = "action";
 	public static final String PARAM_ENTRY_NAME = "param";
 	
+	public static final int ACTION_SIZE = 2;
+	public static final int PARAM_SIZE = 4;
+	public static final int MESSAGE_SIZE = ACTION_SIZE + PARAM_SIZE;
+	
 	//NetworkTables instance and table
 	static NetworkTableInstance tableInstance;
 	static NetworkTable table;
@@ -36,27 +40,22 @@ public class Main {
 	static NetworkTableEntry[] paramEntries = new NetworkTableEntry[4];
 	
 	//This map matches action codes to their corresponding names so we can output the name of the action
-	static HashMap<Integer, String> actionNames;
+	static HashMap<Short, String> actionNames;
 	static {
-		actionNames = new HashMap<Integer, String>();
-		actionNames.put(0x0000, "Rest");
-		actionNames.put(0x0001, "Drive Forward");
-		actionNames.put(0x0002, "Turn Left");
-		actionNames.put(0x0003, "Turn Right");
-		actionNames.put(0x0004, "Drive Backwards");
-		actionNames.put(0x0005, "Raise Elevator");
-		actionNames.put(0x0006, "Lower Elevator");
-		actionNames.put(0x0007, "Intake");
-		actionNames.put(0x0008, "Outtake");
+		actionNames = new HashMap<Short, String>();
+		actionNames.put((short) 0x0000, "Rest");
+		actionNames.put((short) 0x0001, "Drive Forward");
+		actionNames.put((short) 0x0002, "Turn Left");
+		actionNames.put((short) 0x0003, "Turn Right");
+		actionNames.put((short) 0x0004, "Drive Backwards");
+		actionNames.put((short) 0x0005, "Raise Elevator");
+		actionNames.put((short) 0x0006, "Lower Elevator");
+		actionNames.put((short) 0x0007, "Intake");
+		actionNames.put((short) 0x0008, "Outtake");
 	}
 	
 	public static final int PORT = 6135;
 	
-	//Used later to convert the raw bytes from the socket to an integer action code
-	public static int charsToInt(char[] data) {
-		return ((data[0] & 0xFF) * 0x1000000) + ((data[1] & 0xFF) * 0x10000) + 
-				((data[2] & 0xFF) * 0x100) + (data[3] & 0xFF);
-	}
 	//Used later to convert the array of bytes from the socket to a hexadecimal representation
 	private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 	public static String charsToHex(char[] chars) {
@@ -67,15 +66,6 @@ public class Main {
 	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
 	    }
 	    return new String(hexChars);
-	}
-	public static String int32RawBits(int i) {
-		int mask = 0x80000000;
-		char[] chars = new char[32];
-		for(int j = 0; j < 32; j ++) {
-			chars[j] = (i & mask) > 0 ? '1' : '0';
-			mask >>>= 1;
-		}
-		return new String(chars);
 	}
 	
 	//Length of last message
@@ -114,17 +104,17 @@ public class Main {
 			Socket socket = new Socket("localhost", PORT);
 			InputStreamReader in = new InputStreamReader(socket.getInputStream());
 			
-			char[] buf = new char[8];
-			char[] actionBytes = new char[4];
-			char[] param = new char[4];
-			//Read the socket message, in 8 raw bytes
+			char[] buf = new char[MESSAGE_SIZE];
+			char[] actionBytes = new char[ACTION_SIZE];
+			char[] param = new char[PARAM_SIZE];
 			while(in.read(buf) != -1) {
-				//Separate the 8 bytes into bytes for the action code and param
-				for(int i = 0; i < 4; i ++) {
+				for(int i = 0; i < ACTION_SIZE; i ++) {
 					actionBytes[i] = buf[i];
-					param[i] = buf[i + 4];
 				}
-				int action = charsToInt(actionBytes);
+				for(int i = 0; i < PARAM_SIZE; i ++) {
+					param[i] = buf[i + ACTION_SIZE];
+				}
+				short action = (short) ((actionBytes[0] & 0xFF << 8) | (actionBytes[1] & 0xFF));
 				
 				//Set the values to send them over NetworkTables
 				actionEntry.forceSetNumber(action);
