@@ -43,7 +43,7 @@
 const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 
 //How many times data is sent per second
-#define UPDATE_FREQUENCY 4
+#define UPDATE_FREQUENCY 10
 
 #define PI 3.14159265359
 
@@ -123,8 +123,6 @@ public:
 		//Keep part of the normal behavior of the Myo
 		//No matter what unlock mode, if we recognize a gesture, unlock until told otherwise
 		if (pose != myo::Pose::unknown && pose != myo::Pose::rest) {
-			myo->notifyUserAction();
-			
 			myo->unlock(myo::Myo::unlockHold);
 		}
 		//If the unlock mode is normal, unlock for a short period of time only
@@ -206,16 +204,20 @@ public:
 };
 
 SingleMyoDataCollector collector = SingleMyoDataCollector();
-void lockMyo() {
+inline void lockMyo() {
 	if (collector.theMyo)
 		collector.theMyo->lock();
 }
-void unlockMyo() {
+inline void unlockMyo() {
 	if (collector.theMyo)
 		collector.theMyo->unlock(myo::Myo::unlockHold);
 }
-bool isMyoUnlocked() {
+inline bool isMyoUnlocked() {
 	return collector.isUnlocked;
+}
+inline void vibrateMyo() {
+	if (collector.theMyo)
+		collector.theMyo->notifyUserAction();
 }
 
 /*
@@ -360,6 +362,7 @@ int main(int argc, char** argv) {
 		<< "with your palm parallel to the ground, and then press Alt+O to record your reference orientation." << std::endl;
 
 		size_t lastStatusLen = 0;
+		uint32_t lastAction = ACT_REST;
 		while (true) {
 			if (exitFlag)
 				break;
@@ -431,6 +434,11 @@ int main(int argc, char** argv) {
 				else {
 					action = ACT_REST;
 				}
+
+				if (action != lastAction && action != ACT_REST) {
+					vibrateMyo();
+				}
+				lastAction = action;
 
 				sendAction(clientSocket, action, param);
 			}
