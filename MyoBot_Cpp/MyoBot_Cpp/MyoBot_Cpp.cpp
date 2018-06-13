@@ -44,7 +44,7 @@ const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
 //How many times data is sent per second
 #define UPDATE_FREQUENCY 10
 
-#define PI 3.14159265359
+#define PI 3.14159265359f
 
 float toDegrees(float);
 std::string toStringRound(float, size_t);
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
 						//Decrement by 15 degrees
 						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
 						//even if f is negative.
-						f -= copysign(PI / 12, f);
+						f -= copysignf(PI / 12, f);
 						//Because we subtracted 15 degrees, the maximum absolute value that f can have
 						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
 						f = abs(f / (PI / 4));
@@ -410,12 +410,12 @@ int main(int argc, char** argv) {
 					//Check if roll is greater than 10 degrees to account for human error
 					if (abs(collector.roll) >= PI / 18) {
 						//Take the roll of the Myo and make that the param data
-						//First constrain to [-45, 45], then divide to obtain a fraction that represents how much to turn
-						//Note the roll, pitch and yaw are in radians
-						float f = max(-PI / 4, min(PI / 4, collector.roll)) / (PI / 4);
-						//Take the sign/direction and convert to integer
-						//Left is positive
-						unsigned char direction = f > 0 ? 1 : 0;
+						//First check the direction
+						unsigned char direction = collector.roll > 0 ? 1 : 0;
+						//The sign is no longer needed, so take the absolute value and constrain
+						float f = min(PI / 4, abs(collector.roll));
+						//Decrement by the minimum and calculate fraction
+						f = (f - PI / 18) / (7 * PI / 36);
 						//Multiply by 0xFFFF to get the integer representation
 						uint16_t paramData = static_cast<uint16_t>(floorf(abs(f) * 0xFFFF));
 
