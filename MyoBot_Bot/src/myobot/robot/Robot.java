@@ -12,7 +12,10 @@ import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.command.Scheduler;
+import myobot.robot.commands.NetworkTablesDrive;
 import myobot.robot.subsystems.DriveTrain;
+import myobot.robot.subsystems.Elevator;
+import myobot.robot.subsystems.Intake;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -23,18 +26,28 @@ import myobot.robot.subsystems.DriveTrain;
  */
 public class Robot extends TimedRobot {
 	public static DriveTrain driveTrain;
+	public static Elevator elevator;
+	public static Intake intake;
 	public static OI oi;
+	
+	//Shared default command between all subsystems
+	public static NetworkTablesDrive defaultCommand;
 	
 	public static NetworkTableInstance tableInstance;
 	public static NetworkTable table;
-	public static NetworkTableEntry stateEntry;
+	public static NetworkTableEntry actionEntry;
+	public static NetworkTableEntry[] paramEntries = new NetworkTableEntry[RobotMap.PARAM_SIZE];
 	
 	//Messages are all 4 bytes
-	public static final int ACT_REST = 0x0000;
-	public static final int ACT_DRIVEFORWARD = 0x0001;
-	public static final int ACT_TURNLEFT = 0x0002;
-	public static final int ACT_TURNRIGHT = 0x0003;
-	public static final int ACT_DRIVEBACK = 0x0004;
+	public static final short ACT_REST = 0x0000;
+	public static final short ACT_DRIVEFORWARD = 0x0001;
+	public static final short ACT_TURNLEFT = 0x0002;
+	public static final short ACT_TURNRIGHT = 0x0003;
+	public static final short ACT_DRIVEBACK = 0x0004;
+	public static final short ACT_RAISEELEVATOR = 0x0005;
+	public static final short ACT_LOWERELEVATOR = 0x0006;
+	public static final short ACT_INTAKE = 0x0007;
+	public static final short ACT_OUTTAKE = 0x0008;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -45,10 +58,19 @@ public class Robot extends TimedRobot {
 		oi = new OI();
 		
 		tableInstance = NetworkTableInstance.getDefault();
-		table = tableInstance.getTable("control");
-		stateEntry = table.getEntry("state");
+		table = tableInstance.getTable("myobot");
+		actionEntry = table.getEntry("action");
+		for(int i = 0; i < paramEntries.length; i ++) {
+			paramEntries[i] = table.getEntry("param" + i);
+		}
 		
 		driveTrain = new DriveTrain();
+		elevator = new Elevator();
+		intake = new Intake();
+		defaultCommand = new NetworkTablesDrive();
+		driveTrain.setDefaultCommand(defaultCommand);
+		elevator.setDefaultCommand(defaultCommand);
+		intake.setDefaultCommand(defaultCommand);
 	}
 
 	/**

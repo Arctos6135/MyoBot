@@ -119,7 +119,7 @@ public class Main {
 				//Set the values to send them over NetworkTables
 				actionEntry.forceSetNumber(action);
 				for(int i = 0; i < 4; i ++) {
-					paramEntries[i].forceSetValue((byte) param[i]);
+					paramEntries[i].forceSetValue(param[i]);
 				}
 				
 				//Output information

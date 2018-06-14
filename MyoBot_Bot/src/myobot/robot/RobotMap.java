@@ -11,8 +11,8 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 
-import edu.wpi.first.wpilibj.CounterBase.EncodingType;
-import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.VictorSP;
 
 /**
  * The RobotMap is a mapping from the ports sensors and actuators are wired into
@@ -38,14 +38,18 @@ public class RobotMap {
     public static VictorSPX leftDriveVictor = new VictorSPX(5);
     public static VictorSPX rightDriveVictor = new VictorSPX(6);
     
-    public static final int WHEEL_DIAMETER = 6; //INCHES
-	public static final double WHEEL_CIRCUMFRENCE = WHEEL_DIAMETER*Math.PI;
-	public static final double DRIVE_ENCODER_PPR = 2048;
-	public static final double DISTANCE_PER_PULSE = WHEEL_CIRCUMFRENCE/DRIVE_ENCODER_PPR;
+    public static VictorSP elevatorVictor = new VictorSP(7);
+    public static VictorSP wristVictor = new VictorSP(8);
+    public static VictorSP intakeLeft = new VictorSP(5);
+    public static VictorSP intakeRight = new VictorSP(6);
     
-    public static Encoder rightEncoder = new Encoder(2, 3, false, EncodingType.k4X);
-    public static Encoder leftEncoder = new Encoder(0, 1, true, EncodingType.k4X);
+    public static DigitalInput elevatorTopSwitch = new DigitalInput(9);
+    public static DigitalInput elevatorBottomSwitch = new DigitalInput(5);
     
+    public static final int ACTION_SIZE = 2;
+	public static final int PARAM_SIZE = 4;
+	public static final int MESSAGE_SIZE = ACTION_SIZE + PARAM_SIZE;
+       
     static {
     	leftDriveTalon2.follow(leftDriveTalon1);
 		rightDriveTalon2.follow(rightDriveTalon1);
@@ -57,7 +61,7 @@ public class RobotMap {
 		leftDriveTalon1.set(ControlMode.PercentOutput, 0);
 		rightDriveTalon1.set(ControlMode.PercentOutput, 0);
 		
-		leftEncoder.setDistancePerPulse(DISTANCE_PER_PULSE);
-		rightEncoder.setDistancePerPulse(DISTANCE_PER_PULSE);
+		intakeRight.setInverted(false);
+		intakeLeft.setInverted(true);
     }
 }
