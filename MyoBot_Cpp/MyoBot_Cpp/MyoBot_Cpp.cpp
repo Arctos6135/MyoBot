@@ -225,6 +225,12 @@ inline void vibrateMyo() {
 //Because our program is multi-threaded (see below), we must keep an atomic boolean flag variable to indicate when we are exiting.
 std::atomic<bool> exitFlag;
 
+
+enum ControlsMode {
+	CLASSIC,
+	VERSION_2
+};
+ControlsMode controlsMode = ControlsMode::VERSION_2;
 //Win32 Low Level Keyboard Hook
 LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 	//We are only allowed to process the message if the code is HC_ACTION
@@ -272,6 +278,10 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 		case 'I':
 			collector.invertAngles = !collector.invertAngles;
 			std::cout << "\nOrientation angles inverted." << std::endl;
+			break;
+		//Alt+C: Change controls mode
+		case 'C':
+			controlsMode = controlsMode == ControlsMode::CLASSIC ? ControlsMode::VERSION_2 : ControlsMode::CLASSIC;
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -328,6 +338,7 @@ inline std::string toStringRound(float f, size_t decimals) {
 	return s.substr(0, decimals == 0 ? s.find('.') : s.find('.') + decimals + 1);
 }
 
+
 SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
 
@@ -362,9 +373,7 @@ int main(int argc, char** argv) {
 
 		size_t lastStatusLen = 0;
 		uint16_t lastAction = ACT_REST;
-		while (true) {
-			if (exitFlag)
-				break;
+		while (!exitFlag) {
 
 			hub.run(1000 / UPDATE_FREQUENCY);
 
@@ -377,69 +386,91 @@ int main(int argc, char** argv) {
 
 			//Send data only if the Myo is on arm and unlocked.
 			if (collector.onArm && collector.isUnlocked) {
-				//If the pose is unknown, then check if the arm is raised
-				if (abs(collector.pitch) >= PI / 12) {
-					//Same as the turning, constrain to [-60, 60] degrees
-					float f = max(-PI / 3, min(PI / 3, collector.pitch));
 
-					//Check if our pitch is more than 15 degrees
-					if (abs(f) >= PI / 12) {
-						action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
+				if (controlsMode == ControlsMode::VERSION_2) {
+					//If the pose is unknown, then check if the arm is raised
+					if (abs(collector.pitch) >= PI / 12) {
+						//Same as the turning, constrain to [-60, 60] degrees
+						float f = max(-PI / 3, min(PI / 3, collector.pitch));
 
-						//Decrement by 15 degrees
-						//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
-						//even if f is negative.
-						f -= copysignf(PI / 12, f);
-						//Because we subtracted 15 degrees, the maximum absolute value that f can have
-						//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
-						f = abs(f / (PI / 4));
-						//Convert to integer
-						uint16_t paramData = static_cast<uint16_t>(floorf(f * 0xFFFF));
+						//Check if our pitch is more than 15 degrees
+						if (abs(f) >= PI / 12) {
+							action = (f >= 0 ? ACT_RAISEELEVATOR : ACT_LOWERELEVATOR);
 
-						unsigned char c[4] = { paramData >> 8, paramData & 0xFF, 0x00, 0x00};
-						param = c;
+							//Decrement by 15 degrees
+							//Copy the sign of f to PI/12 to make sure we are decrementing the absolute value
+							//even if f is negative.
+							f -= copysignf(PI / 12, f);
+							//Because we subtracted 15 degrees, the maximum absolute value that f can have
+							//is now 60-15=45 degrees. Take the absolute value because direction is already in the action code.
+							f = abs(f / (PI / 4));
+							//Convert to integer
+							uint16_t paramData = static_cast<uint16_t>(floorf(f * 0xFFFF));
+
+							unsigned char c[4] = { paramData >> 8, paramData & 0xFF, 0x00, 0x00 };
+							param = c;
+						}
+						else {
+							action = ACT_REST;
+						}
+					}
+					//Check if pose is fist or spread fingers
+					else if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
+						action = collector.currentPose == myo::Pose::fist ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
+
+						//Check if roll is greater than 10 degrees to account for human error
+						if (abs(collector.roll) >= PI / 18) {
+							//Take the roll of the Myo and make that the param data
+							//First check the direction
+							unsigned char direction = collector.roll > 0 ? 1 : 0;
+							//The sign is no longer needed, so take the absolute value and constrain
+							float f = min(PI / 4, abs(collector.roll));
+							//Decrement by the minimum and calculate fraction
+							f = (f - PI / 18) / (7 * PI / 36);
+							//Multiply by 0xFFFF to get the integer representation
+							uint16_t paramData = static_cast<uint16_t>(floorf(abs(f) * 0xFFFF));
+
+							unsigned char c[4] = { paramData >> 8, paramData & 0xFF, direction, 0x00 };
+							param = c;
+						}
+					}
+					//Check if pose is intake or outtake
+					else if (collector.currentPose == myo::Pose::waveIn) {
+						action = ACT_INTAKE;
+					}
+					else if (collector.currentPose == myo::Pose::waveOut) {
+						action = ACT_OUTTAKE;
 					}
 					else {
 						action = ACT_REST;
 					}
-				}
-				//Check if pose is fist or spread fingers
-				else if (collector.currentPose == myo::Pose::fist || collector.currentPose == myo::Pose::fingersSpread) {
-					action = collector.currentPose == myo::Pose::fist ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
 
-					//Check if roll is greater than 10 degrees to account for human error
-					if (abs(collector.roll) >= PI / 18) {
-						//Take the roll of the Myo and make that the param data
-						//First check the direction
-						unsigned char direction = collector.roll > 0 ? 1 : 0;
-						//The sign is no longer needed, so take the absolute value and constrain
-						float f = min(PI / 4, abs(collector.roll));
-						//Decrement by the minimum and calculate fraction
-						f = (f - PI / 18) / (7 * PI / 36);
-						//Multiply by 0xFFFF to get the integer representation
-						uint16_t paramData = static_cast<uint16_t>(floorf(abs(f) * 0xFFFF));
-
-						unsigned char c[4] = { paramData >> 8, paramData & 0xFF, direction, 0x00 };
-						param = c;
+					if (action != lastAction && action != ACT_REST) {
+						vibrateMyo();
 					}
-				}
-				//Check if pose is intake or outtake
-				else if (collector.currentPose == myo::Pose::waveIn) {
-					action = ACT_INTAKE;
-				}
-				else if (collector.currentPose == myo::Pose::waveOut) {
-					action = ACT_OUTTAKE;
+					lastAction = action;
+
+					sendAction(clientSocket, action, param);
 				}
 				else {
-					action = ACT_REST;
-				}
+					if (collector.currentPose == myo::Pose::fist) {
+						action = ACT_DRIVEFORWARD;
+					}
+					else if (collector.currentPose == myo::Pose::fingersSpread) {
+						action = ACT_DRIVEBACK;
+					}
+					else if (collector.currentPose == myo::Pose::waveIn) {
+						action = collector.arm == myo::Arm::armRight ? ACT_TURNLEFT : ACT_TURNRIGHT;
+					}
+					else if (collector.currentPose == myo::Pose::waveOut) {
+						action = collector.arm == myo::Arm::armRight ? ACT_TURNRIGHT : ACT_TURNLEFT;
+					}
+					else {
+						action = ACT_REST;
+					}
 
-				if (action != lastAction && action != ACT_REST) {
-					vibrateMyo();
+					sendAction(clientSocket, action, PARAM_NULL);
 				}
-				lastAction = action;
-
-				sendAction(clientSocket, action, param);
 			}
 			else {
 				//If the Myo is not on arm, or is locked, send the do nothing message to make sure everything stops.
@@ -449,10 +480,12 @@ int main(int argc, char** argv) {
 			std::string myoState("Myo Status: ");
 			myoState += (collector.isUnlocked ? "Unlocked " : "Locked ");
 			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
-			myoState += "    Roll=" + _DISP(collector.roll);
+			myoState += " Roll=" + _DISP(collector.roll);
 			myoState += " Pitch=" + _DISP(collector.pitch);
 			myoState += " Yaw=" + _DISP(collector.yaw);
 			myoState += collector.invertAngles ? " (Inverted)" : " (Normal)";
+			myoState += " Controls: ";
+			myoState += controlsMode == ControlsMode::CLASSIC ? "Classic" : "2.0";
 			//Concatenate an empty string in the end to keep the length consistent
 			//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
 			//However if our new string is shorter than our old one, then some characters of the old string

@@ -90,6 +90,17 @@ public class NetworkTablesDrive extends Command {
     		Robot.intake.set(0);
     		break;
     	}
+    	case Robot.ACT_TURNLEFT:
+    		Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED, DRIVE_SPEED);
+    		Robot.elevator.set(0);
+    		Robot.intake.set(0);
+    		break;
+    	case Robot.ACT_TURNRIGHT:
+    		Robot.driveTrain.setMotorsVBus(DRIVE_SPEED, -DRIVE_SPEED);
+    		Robot.elevator.set(0);
+    		Robot.intake.set(0);
+    		break;
+    	default: System.err.println("Unrecognized Action Code: " + Integer.toHexString(code));
     	}
     }
 
