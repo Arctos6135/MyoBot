@@ -95,6 +95,11 @@ public class Main {
 		//Default update rate is too slow
 		//Change to 20 times a second instead
 		if(teamNumber != 0) {
+			//Redirect to file
+			tableInstance.addLogger(msg -> {
+				pw.println(msg.filename + " (" + msg.line + "): " + msg.message);
+			}, 0, 100);
+			
 			tableInstance.setUpdateRate(1.0 / 20);
 			tableInstance.startClientTeam(teamNumber);
 			tableInstance.startDSClient();
