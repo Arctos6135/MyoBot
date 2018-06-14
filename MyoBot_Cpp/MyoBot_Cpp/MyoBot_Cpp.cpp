@@ -9,11 +9,11 @@
 #pragma warning(disable: 4838)
 
 /*
-	Each message that this program sends over to the bridge program consists of 6 bytes.
+	Each message that this program sends over to the bridge program consists of 10 bytes.
 
 	The first 2 bytes form a 16 bit integer that is the action code. This dicates which action is to be performed.
 
-	The last 4 bytes are the 'parameters' of the action. These bytes can represent anything and 
+	The last 8 bytes are the 'parameters' of the action. These bytes can represent anything and 
 	can vary according to action.
 */
 //Action code set
@@ -39,7 +39,7 @@
 #define ACT_OUTTAKE (uint16_t) 0x0008
 
 //A null parameter message. Default value to be sent if the action does not use parameters.
-const unsigned char PARAM_NULL[4] = { 0x00, 0x00, 0x00, 0x00 };
+const unsigned char PARAM_NULL[PARAM_SIZE] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 //How many times data is sent per second
 #define UPDATE_FREQUENCY 10
@@ -66,7 +66,7 @@ std::string toStringRound(float, size_t);
 
 	In UNLOCK_HOLD, the Myo is locked/unlocked by pressing Alt+U. Inactivity will no longer lock the Myo.
 */
-enum MyoUnlockMode {
+enum class MyoUnlockMode {
 	UNLOCK_NORMAL,
 	UNLOCK_HOLD
 };
@@ -226,11 +226,23 @@ inline void vibrateMyo() {
 std::atomic<bool> exitFlag;
 
 
-enum ControlsMode {
+enum class ControlsMode {
 	CLASSIC,
-	VERSION_2
+	VERSION_2_0,
+	VERSION_2_1,
 };
-ControlsMode controlsMode = ControlsMode::VERSION_2;
+std::string controlsModeName(ControlsMode mode) {
+	switch (mode) {
+	case ControlsMode::CLASSIC:
+		return "Classic";
+	case ControlsMode::VERSION_2_0:
+		return "2.0";
+	case ControlsMode::VERSION_2_1:
+		return "2.1";
+	default: return "Unknown";
+	}
+}
+ControlsMode controlsMode = ControlsMode::VERSION_2_1;
 //Win32 Low Level Keyboard Hook
 LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 	//We are only allowed to process the message if the code is HC_ACTION
@@ -281,7 +293,19 @@ LRESULT CALLBACK LowLevelKeyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
 			break;
 		//Alt+C: Change controls mode
 		case 'C':
-			controlsMode = controlsMode == ControlsMode::CLASSIC ? ControlsMode::VERSION_2 : ControlsMode::CLASSIC;
+			switch (controlsMode) {
+			case ControlsMode::CLASSIC:
+				controlsMode = ControlsMode::VERSION_2_0;
+				break;
+			case ControlsMode::VERSION_2_0:
+				controlsMode = ControlsMode::VERSION_2_1;
+				break;
+			case ControlsMode::VERSION_2_1:
+				controlsMode = ControlsMode::CLASSIC;
+				break;
+			default: controlsMode = ControlsMode::VERSION_2_1;
+			}
+			std::cout << "\nControls Mode Updated. Please update reference orientation to match if necessary." << std::endl;
 			break;
 		default: return CallNextHookEx(NULL, nCode, wParam, lParam);
 		}
@@ -338,7 +362,11 @@ inline std::string toStringRound(float f, size_t decimals) {
 	return s.substr(0, decimals == 0 ? s.find('.') : s.find('.') + decimals + 1);
 }
 
-
+enum class DriveDirection {
+	FORWARDS,
+	BACKWARDS
+};
+DriveDirection driveDirection;
 SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
 
@@ -368,11 +396,12 @@ int main(int argc, char** argv) {
 		}
 		std::cout << "Myo found!" << std::endl;
 		hub.addListener(&collector);
-		std::cout << "Warning: The Myo's orientation is not initialized. Please put your arm to the front "
-		<< "with your palm parallel to the ground, and then press Alt+O to record your reference orientation." << std::endl;
+		std::cout << "Warning: Please initialize the reference orientation first." << std::endl;
 
 		size_t lastStatusLen = 0;
 		uint16_t lastAction = ACT_REST;
+
+		bool doubleTapping = false;
 		while (!exitFlag) {
 
 			hub.run(1000 / UPDATE_FREQUENCY);
@@ -387,7 +416,21 @@ int main(int argc, char** argv) {
 			//Send data only if the Myo is on arm and unlocked.
 			if (collector.onArm && collector.isUnlocked) {
 
-				if (controlsMode == ControlsMode::VERSION_2) {
+				if (controlsMode == ControlsMode::VERSION_2_1) {
+					if (collector.currentPose == myo::Pose::doubleTap && !doubleTapping) {
+						driveDirection = driveDirection == DriveDirection::FORWARDS ? DriveDirection::FORWARDS : DriveDirection::BACKWARDS;
+						doubleTapping = true;
+					}
+					else {
+						doubleTapping = false;
+
+						if (collector.pitch >= PI / 6) {
+							action = driveDirection == DriveDirection::FORWARDS ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
+
+						}
+					}
+				}
+				else if (controlsMode == ControlsMode::VERSION_2_0) {
 					//If the pose is unknown, then check if the arm is raised
 					if (abs(collector.pitch) >= PI / 12) {
 						//Same as the turning, constrain to [-60, 60] degrees
@@ -407,7 +450,7 @@ int main(int argc, char** argv) {
 							//Convert to integer
 							uint16_t paramData = static_cast<uint16_t>(floorf(f * 0xFFFF));
 
-							unsigned char c[4] = { paramData >> 8, paramData & 0xFF, 0x00, 0x00 };
+							unsigned char c[PARAM_SIZE] = { paramData >> 8, paramData & 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 							param = c;
 						}
 						else {
@@ -430,7 +473,7 @@ int main(int argc, char** argv) {
 							//Multiply by 0xFFFF to get the integer representation
 							uint16_t paramData = static_cast<uint16_t>(floorf(abs(f) * 0xFFFF));
 
-							unsigned char c[4] = { paramData >> 8, paramData & 0xFF, direction, 0x00 };
+							unsigned char c[PARAM_SIZE] = { paramData >> 8, paramData & 0xFF, direction, 0x00, 0x00, 0x00, 0x00, 0x00 };
 							param = c;
 						}
 					}
@@ -452,7 +495,7 @@ int main(int argc, char** argv) {
 
 					sendAction(clientSocket, action, param);
 				}
-				else {
+				else if(controlsMode == ControlsMode::CLASSIC) {
 					if (collector.currentPose == myo::Pose::fist) {
 						action = ACT_DRIVEFORWARD;
 					}
@@ -470,6 +513,9 @@ int main(int argc, char** argv) {
 					}
 
 					sendAction(clientSocket, action, PARAM_NULL);
+				}
+				else {
+					sendAction(clientSocket, ACT_REST, PARAM_NULL);
 				}
 			}
 			else {

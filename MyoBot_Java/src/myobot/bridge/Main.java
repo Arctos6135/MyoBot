@@ -28,7 +28,7 @@ public class Main {
 	public static final String PARAM_ENTRY_NAME = "param";
 	
 	public static final int ACTION_SIZE = 2;
-	public static final int PARAM_SIZE = 4;
+	public static final int PARAM_SIZE = 8;
 	public static final int MESSAGE_SIZE = ACTION_SIZE + PARAM_SIZE;
 	
 	//NetworkTables instance and table
@@ -37,7 +37,7 @@ public class Main {
 	
 	//The entry that stores the action is a single value, while the parameter entries are an array of 4
 	static NetworkTableEntry actionEntry;
-	static NetworkTableEntry[] paramEntries = new NetworkTableEntry[4];
+	static NetworkTableEntry[] paramEntries = new NetworkTableEntry[PARAM_SIZE];
 	
 	//This map matches action codes to their corresponding names so we can output the name of the action
 	static HashMap<Short, String> actionNames;
@@ -88,7 +88,7 @@ public class Main {
 		table = tableInstance.getTable("myobot");
 		
 		actionEntry = table.getEntry("action");
-		for(int i = 0; i < 4; i ++) {
+		for(int i = 0; i < PARAM_SIZE; i ++) {
 			paramEntries[i] = table.getEntry("param" + i);
 		}
 		

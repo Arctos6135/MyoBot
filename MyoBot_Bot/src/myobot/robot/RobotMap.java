@@ -47,7 +47,7 @@ public class RobotMap {
     public static DigitalInput elevatorBottomSwitch = new DigitalInput(5);
     
     public static final int ACTION_SIZE = 2;
-	public static final int PARAM_SIZE = 4;
+	public static final int PARAM_SIZE = 8;
 	public static final int MESSAGE_SIZE = ACTION_SIZE + PARAM_SIZE;
        
     static {
