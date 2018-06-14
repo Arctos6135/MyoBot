@@ -36,7 +36,12 @@ public class NetworkTablesDrive extends Command {
     	char[] param = new char[RobotMap.PARAM_SIZE];
     	
     	for(int i = 0; i < param.length; i ++) {
-    		param[i] = (Character) Robot.paramEntries[i].getValue().getValue();
+    		//Ugly conversion because of lack of unsigned data types
+    		//To avoid problems with sign, use a 16 bit char instead of a 8 bit byte to store the data
+    		//First retrieve the object from NT and cast to a Byte
+    		//Then cast to an unsigned integer because directly casting to char will keep the sign
+    		//Then take only the last byte of the integer and cast to char
+    		param[i] = (char) (Byte.toUnsignedInt((Byte) Robot.paramEntries[i].getValue().getValue()) & 0xFF);
     	}
     	
     	switch(code) {
