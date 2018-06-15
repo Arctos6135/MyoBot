@@ -56,7 +56,7 @@ const unsigned char PARAM_NULL[PARAM_SIZE] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x0
 
 float toDegrees(float);
 std::string toStringRound(float, size_t);
-#define _DISP(n) toStringRound(toDegrees(n), 1)
+#define _DISP(n) toStringRound(toDegrees(n), 0)
 
 /*
 	The following enum, class and functions deal with collecting data from the Myo.
@@ -426,10 +426,11 @@ int main(int argc, char** argv) {
 
 				if (controlsMode == ControlsMode::VERSION_2_1) {
 					if (collector.currentPose == myo::Pose::doubleTap && !doubleTapping) {
-						driveDirection = driveDirection == DriveDirection::FORWARDS ? DriveDirection::FORWARDS : DriveDirection::BACKWARDS;
+						driveDirection = driveDirection == DriveDirection::FORWARDS ? DriveDirection::BACKWARDS : DriveDirection::FORWARDS;
 						doubleTapping = true;
+						vibrateMyo();
 					}
-					else {
+					else if(collector.currentPose != myo::Pose::doubleTap) {
 						doubleTapping = false;
 
 						if (collector.pitch >= -PI / 4) {
@@ -437,7 +438,7 @@ int main(int argc, char** argv) {
 
 							unsigned char paramData[PARAM_SIZE] = { 0x00 };
 
-							float f1 = min(3 * PI / 4, collector.pitch + PI / 4) / (3 * PI / 4);
+							float f1 = min(PI / 2, collector.pitch + PI / 4) / (PI / 2);
 							uint16_t driveSpeed = static_cast<uint16_t>(floorf(f1 * 0xFFFF));
 							paramData[3] = driveSpeed >> 8;
 							paramData[4] = driveSpeed & 0xFF;
@@ -482,6 +483,11 @@ int main(int argc, char** argv) {
 							unsigned char paramData[PARAM_SIZE] = { 0xFF, 0xFF };
 							param = paramData;
 						}
+
+						if (action != lastAction && action != ACT_REST) {
+							vibrateMyo();
+						}
+						lastAction = action;
 
 						sendAction(clientSocket, action, param);
 					}
@@ -579,7 +585,7 @@ int main(int argc, char** argv) {
 				sendAction(clientSocket, ACT_REST, PARAM_NULL);
 			}
 
-			std::string myoState("Myo Status: ");
+			std::string myoState("Status: ");
 			myoState += (collector.isUnlocked ? "Unlocked " : "Locked ");
 			myoState += ((unlockMode == MyoUnlockMode::UNLOCK_NORMAL) ? "(Normal)" : "(Hold)");
 			myoState += " Roll=" + _DISP(collector.roll);
