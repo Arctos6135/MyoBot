@@ -7,9 +7,6 @@
 
 package myobot.robot;
 
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableEntry;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import myobot.robot.commands.NetworkTablesDrive;
@@ -32,22 +29,6 @@ public class Robot extends TimedRobot {
 	
 	//Shared default command between all subsystems
 	public static NetworkTablesDrive defaultCommand;
-	
-	public static NetworkTableInstance tableInstance;
-	public static NetworkTable table;
-	public static NetworkTableEntry actionEntry;
-	public static NetworkTableEntry[] paramEntries = new NetworkTableEntry[RobotMap.PARAM_SIZE];
-	
-	//Messages are all 4 bytes
-	public static final short ACT_REST = 0x0000;
-	public static final short ACT_DRIVEFORWARD = 0x0001;
-	public static final short ACT_TURNLEFT = 0x0002;
-	public static final short ACT_TURNRIGHT = 0x0003;
-	public static final short ACT_DRIVEBACK = 0x0004;
-	public static final short ACT_RAISEELEVATOR = 0x0005;
-	public static final short ACT_LOWERELEVATOR = 0x0006;
-	public static final short ACT_INTAKE = 0x0007;
-	public static final short ACT_OUTTAKE = 0x0008;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -56,13 +37,6 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotInit() {
 		oi = new OI();
-		
-		tableInstance = NetworkTableInstance.getDefault();
-		table = tableInstance.getTable("myobot");
-		actionEntry = table.getEntry("action");
-		for(int i = 0; i < paramEntries.length; i ++) {
-			paramEntries[i] = table.getEntry("param" + i);
-		}
 		
 		driveTrain = new DriveTrain();
 		elevator = new Elevator();

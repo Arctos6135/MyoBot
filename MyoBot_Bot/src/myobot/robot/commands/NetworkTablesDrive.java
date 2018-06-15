@@ -1,8 +1,8 @@
 package myobot.robot.commands;
 
 import edu.wpi.first.wpilibj.command.Command;
+import myobot.robot.Comms;
 import myobot.robot.Robot;
-import myobot.robot.RobotMap;
 import myobot.robot.subsystems.Elevator;
 import myobot.robot.subsystems.Intake;
 
@@ -32,8 +32,8 @@ public class NetworkTablesDrive extends Command {
 
     // Called repeatedly when this Command is scheduled to run
     protected void execute() {
-    	short code = Robot.actionEntry.getNumber(Robot.ACT_REST).shortValue();
-    	char[] param = new char[RobotMap.PARAM_SIZE];
+    	short code = Comms.actionEntry.getNumber(Comms.ACT_REST).shortValue();
+    	char[] param = new char[Comms.PARAM_SIZE];
     	
     	for(int i = 0; i < param.length; i ++) {
     		//Ugly conversion because of lack of unsigned data types
@@ -41,61 +41,99 @@ public class NetworkTablesDrive extends Command {
     		//First retrieve the object from NT and cast to a Byte
     		//Then cast to an unsigned integer because directly casting to char will keep the sign
     		//Then take only the last byte of the integer and cast to char
-    		param[i] = (char) (Byte.toUnsignedInt((Byte) Robot.paramEntries[i].getValue().getValue()) & 0xFF);
+    		param[i] = (char) (Byte.toUnsignedInt((Byte) Comms.paramEntries[i].getValue().getValue()) & 0xFF);
     	}
     	
     	switch(code) {
-    	case Robot.ACT_REST:
+    	case Comms.ACT_REST:
     		Robot.driveTrain.setMotorsVBus(0, 0);
     		Robot.elevator.set(0);
     		Robot.intake.set(0);
     		break;
-    	case Robot.ACT_INTAKE:
+    	case Comms.ACT_INTAKE:
     		Robot.intake.set(0.7, Intake.IN);
     		Robot.elevator.set(0);
     		Robot.driveTrain.setMotorsVBus(0, 0);
     		break;
-    	case Robot.ACT_OUTTAKE:
+    	case Comms.ACT_OUTTAKE:
     		Robot.intake.set(0.7, Intake.OUT);
     		Robot.elevator.set(0);
     		Robot.driveTrain.setMotorsVBus(0, 0);
     		break;
-    	case Robot.ACT_RAISEELEVATOR:
+    	case Comms.ACT_RAISEELEVATOR:
     		Robot.elevator.set(constructSpeed(param[0], param[1]), Elevator.UP);
     		Robot.intake.set(0);
     		Robot.driveTrain.setMotorsVBus(0, 0);
     		break;
-    	case Robot.ACT_LOWERELEVATOR:
+    	case Comms.ACT_LOWERELEVATOR:
     		Robot.elevator.set(constructSpeed(param[0], param[1]), Elevator.DOWN);
     		Robot.intake.set(0);
     		Robot.driveTrain.setMotorsVBus(0, 0);
     		break;
-    	case Robot.ACT_DRIVEFORWARD:
+    	case Comms.ACT_DRIVEFORWARD:
     	{
+    		char flags = param[2];
     		double turnSpeed = constructSpeed(param[0], param[1]) * DRIVE_SPEED;
-    		int direction = param[2] == 1 ? -1 : 1;
+    		int direction = (flags & Comms.MASK_TURNDIRECTION) == 1 ? -1 : 1;
+    		double driveSpeed;
+    		if((flags & Comms.MASK_DRIVESPEED) > 0) {
+    			driveSpeed = constructSpeed(param[3], param[4]) * DRIVE_SPEED;
+    		}
+    		else {
+    			driveSpeed = DRIVE_SPEED;
+    		}
     		
-    		Robot.driveTrain.setMotorsVBus(DRIVE_SPEED + turnSpeed * direction, DRIVE_SPEED - turnSpeed * direction);
+    		Robot.driveTrain.setMotorsVBus(driveSpeed + turnSpeed * direction, driveSpeed - turnSpeed * direction);
     		Robot.elevator.set(0);
-    		Robot.intake.set(0);
+
+    		if((flags & Comms.MASK_RUNINTAKE) > 0) {
+    			if((flags & Comms.MASK_INTAKEDIRECTION) > 0) {
+    				Robot.intake.set(0.7, Intake.OUT);
+    			}
+    			else {
+    				Robot.intake.set(0.7, Intake.IN);
+    			}
+    		}
+    		else {
+    			Robot.intake.set(0);
+    		}
     		break;
     	}
-    	case Robot.ACT_DRIVEBACK:
+    	case Comms.ACT_DRIVEBACK:
     	{
+    		char flags = param[2];
     		double turnSpeed = constructSpeed(param[0], param[1]) * DRIVE_SPEED;
-    		int direction = param[2] == 1 ? -1 : 1;
+    		int direction = (flags & Comms.MASK_TURNDIRECTION) == 1 ? -1 : 1;
+    		double driveSpeed;
+    		if((flags & Comms.MASK_DRIVESPEED) > 0) {
+    			driveSpeed = constructSpeed(param[3], param[4]) * DRIVE_SPEED;
+    		}
+    		else {
+    			driveSpeed = DRIVE_SPEED;
+    		}
     		
-    		Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED + turnSpeed * direction, -DRIVE_SPEED - turnSpeed * direction);
+    		Robot.driveTrain.setMotorsVBus(-driveSpeed + turnSpeed * direction, -driveSpeed - turnSpeed * direction);
     		Robot.elevator.set(0);
-    		Robot.intake.set(0);
+
+    		if((flags & Comms.MASK_RUNINTAKE) > 0) {
+    			if((flags & Comms.MASK_INTAKEDIRECTION) > 0) {
+    				Robot.intake.set(0.7, Intake.OUT);
+    			}
+    			else {
+    				Robot.intake.set(0.7, Intake.IN);
+    			}
+    		}
+    		else {
+    			Robot.intake.set(0);
+    		}
     		break;
     	}
-    	case Robot.ACT_TURNLEFT:
+    	case Comms.ACT_TURNLEFT:
     		Robot.driveTrain.setMotorsVBus(-DRIVE_SPEED, DRIVE_SPEED);
     		Robot.elevator.set(0);
     		Robot.intake.set(0);
     		break;
-    	case Robot.ACT_TURNRIGHT:
+    	case Comms.ACT_TURNRIGHT:
     		Robot.driveTrain.setMotorsVBus(DRIVE_SPEED, -DRIVE_SPEED);
     		Robot.elevator.set(0);
     		Robot.intake.set(0);
