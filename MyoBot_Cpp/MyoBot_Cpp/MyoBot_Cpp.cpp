@@ -347,6 +347,7 @@ unsigned int __stdcall messageLoopThread(void* data) {
 }
 
 //This console routine handler makes sure that when our program exits, the Myo is locked.
+extern SOCKET clientSocket, listenerSocket;
 BOOL WINAPI ConsoleHandler(DWORD dwCtrlType) {
 	switch (dwCtrlType) {
 	//Handle exit via Ctrl+C, Ctrl+Break, and the close button
@@ -356,6 +357,7 @@ BOOL WINAPI ConsoleHandler(DWORD dwCtrlType) {
 	case CTRL_CLOSE_EVENT:
 		if (collector.theMyo)
 			lockMyo();
+		cleanupSockets(clientSocket, listenerSocket);
 		break;
 	default: return FALSE;
 	}
@@ -391,10 +393,8 @@ int main(int argc, char** argv) {
 	std::cout << "Thread creation successful." << std::endl;
 
 	try {
-		std::cout << "Creating sockets..." << std::endl;
-		setupSockets(listenerSocket, clientSocket);
 
-		std::cout << "Connection established. Connecting to Myo Hub..." << std::endl;
+		std::cout << "Connecting to Myo Hub..." << std::endl;
 		myo::Hub hub("org.usfirst.frc.team6135.MyoBot_Cpp");
 
 		std::cout << "Waiting for Myo..." << std::endl;
@@ -405,6 +405,9 @@ int main(int argc, char** argv) {
 		std::cout << "Myo found!" << std::endl;
 		hub.addListener(&collector);
 		std::cout << "Warning: Please initialize the reference orientation first." << std::endl;
+
+		std::cout << "Creating sockets..." << std::endl;
+		setupSockets(listenerSocket, clientSocket);
 
 		size_t lastStatusLen = 0;
 		uint16_t lastAction = ACT_REST;
@@ -607,7 +610,6 @@ int main(int argc, char** argv) {
 			lastStatusLen = myoState.length();
 		}
 
-		cleanupSockets(listenerSocket, clientSocket);
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
@@ -625,6 +627,7 @@ int main(int argc, char** argv) {
 		PostThreadMessage(threadId, WM_NULL, NULL, NULL);
 		WaitForSingleObject(msgThread, INFINITE);
 		CloseHandle(msgThread);
+		cleanupSockets(listenerSocket, clientSocket);
 		return 1;
 	}
 	catch (...) {
@@ -643,6 +646,7 @@ int main(int argc, char** argv) {
 		PostThreadMessage(threadId, WM_NULL, NULL, NULL);
 		WaitForSingleObject(msgThread, INFINITE);
 		CloseHandle(msgThread);
+		cleanupSockets(listenerSocket, clientSocket);
 		return 1;
 	}
 
@@ -656,6 +660,7 @@ int main(int argc, char** argv) {
 	PostThreadMessage(threadId, WM_NULL, NULL, NULL);
 	WaitForSingleObject(msgThread, INFINITE);
 	CloseHandle(msgThread);
+	cleanupSockets(listenerSocket, clientSocket);
     return 0;
 }
 
