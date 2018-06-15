@@ -380,6 +380,7 @@ DriveDirection driveDirection;
 SOCKET listenerSocket, clientSocket;
 int main(int argc, char** argv) {
 
+	SetConsoleTitle(_T("MyoBot Myo Reader Program"));
 	exitFlag = false;
 	//Add our console routine handler
 	SetConsoleCtrlHandler(&ConsoleHandler, TRUE);
