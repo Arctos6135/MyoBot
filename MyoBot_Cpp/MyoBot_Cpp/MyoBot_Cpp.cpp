@@ -20,14 +20,22 @@
 //Param: None
 #define ACT_REST (uint16_t) 0x0000
 //Param: First two bytes store an unsigned 16 bit integer representing how much to turn (big endian),
-//third byte stores the turn direction (1 for left and 0 for right)
+//Last bit of the third byte stores the turn direction (1 for left and 0 for right)
+//Second last bit of the third byte is whether the intake should also be run
+//Third last bit of the third byte is the direction of the intake (0 for in, 1 for out)
+//Fourth last bit of the third byte is whether a drive speed is being provided (to keep compatibility with older controls)
+//Fourth and fifth bytes store an unsigned 16 bit integer representing the drive speed
 #define ACT_DRIVEFORWARD (uint16_t) 0x0001
 //Unused in the current version; retained for compatibility
 #define ACT_TURNLEFT (uint16_t) 0x0002
 //Unused in the current version; retained for compatibility
 #define ACT_TURNRIGHT (uint16_t) 0x0003 
 //Param: First two bytes store an unsigned 16 bit integer representing how much to turn (big endian),
-//third byte stores the turn direction (1 for left and 0 for right)
+//Last bit of the third byte stores the turn direction (1 for left and 0 for right)
+//Second last bit of the third byte is whether the intake should also be run
+//Third last bit of the third byte is the direction of the intake (0 for in, 1 for out)
+//Fourth last bit of the third byte is whether a drive speed is being provided (to keep compatibility with older controls)
+//Fourth and fifth bytes store an unsigned 16 bit integer representing the drive speed
 #define ACT_DRIVEBACK (uint16_t) 0x0004
 //Param: First two bytes store an unsigned 16 bit integer representing the speed (big endian)
 #define ACT_RAISEELEVATOR (uint16_t) 0x0005 
@@ -424,10 +432,58 @@ int main(int argc, char** argv) {
 					else {
 						doubleTapping = false;
 
-						if (collector.pitch >= PI / 6) {
+						if (collector.pitch >= -PI / 4) {
 							action = driveDirection == DriveDirection::FORWARDS ? ACT_DRIVEFORWARD : ACT_DRIVEBACK;
 
+							unsigned char paramData[PARAM_SIZE] = { 0x00 };
+
+							float f1 = min(3 * PI / 4, collector.pitch + PI / 4) / (3 * PI / 4);
+							uint16_t driveSpeed = static_cast<uint16_t>(floorf(f1 * 0xFFFF));
+							paramData[3] = driveSpeed >> 8;
+							paramData[4] = driveSpeed & 0xFF;
+
+							uint8_t flags = 0x00;
+							flags |= 0b0000'1000;
+							
+							if (abs(collector.yaw) >= PI / 18) {
+								if (collector.yaw >= 0) {
+									flags |= 0b0000'0001;
+								}
+								
+								float f2 = min(7 * PI / 36, abs(collector.yaw) - PI / 18) / (7 * PI / 36);
+								uint16_t turnSpeed = static_cast<uint16_t>(floorf(f2 * 0xFFFF));
+								paramData[0] = turnSpeed >> 8;
+								paramData[1] = turnSpeed & 0xFF;
+							}
+
+							if (collector.currentPose == myo::Pose::fist) {
+								flags |= 0b0000'0010;
+							}
+							else if (collector.currentPose == myo::Pose::fingersSpread) {
+								flags |= 0b0000'0110;
+							}
+
+							paramData[2] = flags;
+							param = paramData;
 						}
+						else if (collector.currentPose == myo::Pose::fist) {
+							action = ACT_INTAKE;
+						}
+						else if (collector.currentPose == myo::Pose::fingersSpread) {
+							action = ACT_OUTTAKE;
+						}
+						else if (collector.currentPose == myo::Pose::waveOut) {
+							action = ACT_RAISEELEVATOR;
+							unsigned char paramData[PARAM_SIZE] = { 0xFF, 0xFF };
+							param = paramData;
+						}
+						else if (collector.currentPose == myo::Pose::waveIn) {
+							action = ACT_LOWERELEVATOR;
+							unsigned char paramData[PARAM_SIZE] = { 0xFF, 0xFF };
+							param = paramData;
+						}
+
+						sendAction(clientSocket, action, param);
 					}
 				}
 				else if (controlsMode == ControlsMode::VERSION_2_0) {
@@ -531,7 +587,7 @@ int main(int argc, char** argv) {
 			myoState += " Yaw=" + _DISP(collector.yaw);
 			myoState += collector.invertAngles ? " (Inverted)" : " (Normal)";
 			myoState += " Controls: ";
-			myoState += controlsMode == ControlsMode::CLASSIC ? "Classic" : "2.0";
+			myoState += controlsModeName(controlsMode);
 			//Concatenate an empty string in the end to keep the length consistent
 			//The \r character puts the cursor back to the beginning of the line so we can overwrite the line.
 			//However if our new string is shorter than our old one, then some characters of the old string
