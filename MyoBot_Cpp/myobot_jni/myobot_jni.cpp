@@ -129,21 +129,30 @@ public:
 	}
 };
 
-SingleMyoDataCollector collector;
-Hub *hub;
+Myo* myo = nullptr;
+Hub* hub = nullptr;
+SingleMyoDataCollector* collector = nullptr;
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj) {
 
 	try {
-		Hub h("org.usfirst.frc.team6135.MyoBot");
-		hub = &h;
-		Myo *myo = hub->waitForMyo(10000);
+		Hub hub("org.usfirst.frc.team6135.MyoBot");
+		myo = hub.waitForMyo(10000);
 		if (!myo) {
 			return false;
 		}
-		collector = SingleMyoDataCollector();
-		collector.theMyo = myo;
-		hub->addListener(&collector);
+		SingleMyoDataCollector smdc;
+		collector = &smdc;
+		collector->theMyo = myo;
+		hub.addListener(collector);
+
+		jclass myoClass = env->GetObjectClass(obj);
+		jfieldID fidMyoPointer = env->GetFieldID(myoClass, "_myoPointer", "J");
+		jfieldID fidHubPointer = env->GetFieldID(myoClass, "_hubPointer", "J");
+		jfieldID fidCollectorPointer = env->GetFieldID(myoClass, "_collectorPointer", "J");
+		env->SetLongField(obj, fidMyoPointer, (jlong)myo);
+		env->SetLongField(obj, fidHubPointer, (jlong)&hub);
+		env->SetLongField(obj, fidCollectorPointer, (jlong)&collector);
 	}
 	catch (...) {
 		return false;
@@ -151,38 +160,54 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env
 	return true;
 }
 
+jlong getMyoPointer(JNIEnv *env, jobject obj) {
+	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_myoPointer", "J");
+	return env->GetLongField(obj, fid);
+}
+jlong getHubPointer(JNIEnv *env, jobject obj) {
+	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_hubPointer", "J");
+	return env->GetLongField(obj, fid);
+}
+jlong getCollectorPointer(JNIEnv *env, jobject obj) {
+	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_collectorPointer", "J");
+	return env->GetLongField(obj, fid);
+}
+
 JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1runHub(JNIEnv *env, jobject obj, jint millis) {
+	Hub *hub = (Hub *)getHubPointer(env, obj);
 	if (hub) {
 		hub->run(millis);
 	}
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1lock(JNIEnv *env, jobject obj) {
-	if (!collector.theMyo) {
+	Myo *myo = (Myo *)getMyoPointer(env, obj);
+	if (!myo) {
 		return false;
 	}
-	collector.theMyo->lock();
+	myo->lock();
 	return true;
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1unlock(JNIEnv *env, jobject obj) {
-	if (!collector.theMyo) {
+	Myo *myo = (Myo *)getMyoPointer(env, obj);
+	if (!myo) {
 		return false;
 	}
-	collector.theMyo->unlock(Myo::unlockHold);
+	myo->unlock(Myo::unlockHold);
 	return true;
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isLocked(JNIEnv *env, jobject obj) {
-	return !collector.isUnlocked;
+	return !((SingleMyoDataCollector *)getCollectorPointer(env, obj))->isUnlocked;
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isOnArm(JNIEnv *env, jobject obj) {
-	return collector.onArm;
+	return ((SingleMyoDataCollector *)getCollectorPointer(env, obj))->onArm;
 }
 
 JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getArm(JNIEnv *env, jobject obj) {
-	switch (collector.arm) {
+	switch (((SingleMyoDataCollector *)getCollectorPointer(env, obj))->arm) {
 	case Arm::armLeft:
 		return 0;
 	case Arm::armRight:
@@ -194,16 +219,18 @@ JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getArm(JNIEnv *env, jobjec
 }
 
 JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1updateRef(JNIEnv *env, jobject obj) {
-	collector.setRefOrientation(collector.orientationRaw);
+	SingleMyoDataCollector *collector = (SingleMyoDataCollector *)getCollectorPointer(env, obj);
+	collector->setRefOrientation(collector->orientationRaw);
 }
 
 JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1getOrientation(JNIEnv *env, jobject obj) {
+	SingleMyoDataCollector *collector = (SingleMyoDataCollector *)getCollectorPointer(env, obj);
 	jclass myoClass = env->GetObjectClass(obj);
 
 	jfieldID fidYaw = env->GetFieldID(myoClass, "result_yaw", "D");
 	jfieldID fidPitch = env->GetFieldID(myoClass, "result_pitch", "D");
 	jfieldID fidRoll = env->GetFieldID(myoClass, "result_roll", "D");
-	env->SetDoubleField(obj, fidYaw, static_cast<jdouble>(collector.yaw));
-	env->SetDoubleField(obj, fidPitch, static_cast<jdouble>(collector.pitch));
-	env->SetDoubleField(obj, fidRoll, static_cast<jdouble>(collector.roll));
+	env->SetDoubleField(obj, fidYaw, static_cast<jdouble>(collector->yaw));
+	env->SetDoubleField(obj, fidPitch, static_cast<jdouble>(collector->pitch));
+	env->SetDoubleField(obj, fidRoll, static_cast<jdouble>(collector->roll));
 }

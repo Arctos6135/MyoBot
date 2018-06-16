@@ -16,6 +16,9 @@ public class Myo {
 	}
 	
 	private native boolean __initialize();
+	private long _myoPointer = 0;
+	private long _collectorPointer = 0;
+	private long _hubPointer = 0;
 	public void init() {
 		initialized = __initialize();
 		if(!initialized) {
