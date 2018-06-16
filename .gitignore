@@ -9,6 +9,7 @@ dist/
 Debug/
 Release/
 ipch/
+*.class
 # Include MyoBot/bin however
 !/bin/
 # Logs
