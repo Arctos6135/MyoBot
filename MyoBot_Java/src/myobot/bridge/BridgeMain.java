@@ -8,11 +8,12 @@ public class BridgeMain {
 	public static void main(String[] args) {
 		
 		try {
-			Myo.init();
+			Myo myo = new Myo();
+			myo.init();
+			myo.lock();
 		}
 		catch(MyoException e) {
-			System.out.println("Failed to initialize Myo connection.");
-			System.exit(0);
+			e.printStackTrace();
 		}
 	}
 

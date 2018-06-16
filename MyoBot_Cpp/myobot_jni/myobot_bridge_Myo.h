@@ -7,29 +7,67 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef myobot_bridge_myo_Myo_ARM_LEFT
+#define myobot_bridge_myo_Myo_ARM_LEFT 0L
+#undef myobot_bridge_myo_Myo_ARM_RIGHT
+#define myobot_bridge_myo_Myo_ARM_RIGHT 1L
+#undef myobot_bridge_myo_Myo_ARM_UNKNOWN
+#define myobot_bridge_myo_Myo_ARM_UNKNOWN 2L
 	/*
 	* Class:     myobot_bridge_myo_Myo
 	* Method:    __initialize
-	* Signature: ()V
+	* Signature: ()Z
 	*/
-	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1initialize
-	(JNIEnv *, jclass);
+	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __runHub
+	* Signature: (I)V
+	*/
+	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1runHub
+	(JNIEnv *, jobject, jint);
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
 	* Method:    __lock
-	* Signature: ()V
+	* Signature: ()Z
 	*/
-	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1lock
-	(JNIEnv *, jclass);
+	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1lock
+	(JNIEnv *, jobject);
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
 	* Method:    __unlock
-	* Signature: ()V
+	* Signature: ()Z
 	*/
-	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1unlock
-	(JNIEnv *, jclass);
+	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1unlock
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __isLocked
+	* Signature: ()Z
+	*/
+	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isLocked
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __isOnArm
+	* Signature: ()Z
+	*/
+	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isOnArm
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __getArm
+	* Signature: ()I
+	*/
+	JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getArm
+	(JNIEnv *, jobject);
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
@@ -37,7 +75,7 @@ extern "C" {
 	* Signature: ()V
 	*/
 	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1updateRef
-	(JNIEnv *, jclass);
+	(JNIEnv *, jobject);
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
@@ -45,7 +83,7 @@ extern "C" {
 	* Signature: ()V
 	*/
 	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1getOrientation
-	(JNIEnv *, jclass);
+	(JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

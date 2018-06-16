@@ -58,6 +58,11 @@ public:
 
 	//Collect orientation data
 	void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& quat) override {
+
+		if (!theMyo) {
+			theMyo = myo;
+		}
+
 		orientationRaw = myo::Quaternion<float>(quat);
 
 		//Multiply by the inverse of the reference orientation to change perspective
@@ -124,28 +129,81 @@ public:
 	}
 };
 
-void setStaticDoubleField(JNIEnv *env, jclass clazz, char* name, double value) {
-	jfieldID fid = env->GetStaticFieldID(clazz, name, "D");
-	env->SetStaticDoubleField(clazz, fid, value);
-}
-
 SingleMyoDataCollector collector;
+Hub *hub;
 
-JNIEXPORT void JNICALL Java_myobot_bridge_Myo__1_1initialize(JNIEnv *env, jclass jclass) {
+JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj) {
 
 	try {
-		Hub hub("org.usfirst.frc.team6135.MyoBot");
-		Myo *myo = hub.waitForMyo(10000);
+		Hub h("org.usfirst.frc.team6135.MyoBot");
+		hub = &h;
+		Myo *myo = hub->waitForMyo(10000);
 		if (!myo) {
-			return;
+			return false;
 		}
 		collector = SingleMyoDataCollector();
-		hub.addListener(&collector);
+		collector.theMyo = myo;
+		hub->addListener(&collector);
 	}
 	catch (...) {
-		return;
+		return false;
 	}
- 	
-	jfieldID fidInitBoolean = env->GetStaticFieldID(jclass, "initialized", "Z");
-	env->SetStaticBooleanField(jclass, fidInitBoolean, true);
+	return true;
+}
+
+JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1runHub(JNIEnv *env, jobject obj, jint millis) {
+	if (hub) {
+		hub->run(millis);
+	}
+}
+
+JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1lock(JNIEnv *env, jobject obj) {
+	if (!collector.theMyo) {
+		return false;
+	}
+	collector.theMyo->lock();
+	return true;
+}
+
+JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1unlock(JNIEnv *env, jobject obj) {
+	if (!collector.theMyo) {
+		return false;
+	}
+	collector.theMyo->unlock(Myo::unlockHold);
+	return true;
+}
+
+JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isLocked(JNIEnv *env, jobject obj) {
+	return !collector.isUnlocked;
+}
+
+JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isOnArm(JNIEnv *env, jobject obj) {
+	return collector.onArm;
+}
+
+JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getArm(JNIEnv *env, jobject obj) {
+	switch (collector.arm) {
+	case Arm::armLeft:
+		return 0;
+	case Arm::armRight:
+		return 1;
+	case Arm::armUnknown:
+		return 2;
+	default: return 2;
+	}
+}
+
+JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1updateRef(JNIEnv *env, jobject obj) {
+	collector.setRefOrientation(collector.orientationRaw);
+}
+
+JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1getOrientation(JNIEnv *env, jobject obj) {
+	jclass myoClass = env->GetObjectClass(obj);
+
+	jfieldID fidYaw = env->GetFieldID(myoClass, "result_yaw", "D");
+	jfieldID fidPitch = env->GetFieldID(myoClass, "result_pitch", "D");
+	jfieldID fidRoll = env->GetFieldID(myoClass, "result_roll", "D");
+	env->SetDoubleField(obj, fidYaw, static_cast<jdouble>(collector.yaw));
+	env->SetDoubleField(obj, fidPitch, static_cast<jdouble>(collector.pitch));
+	env->SetDoubleField(obj, fidRoll, static_cast<jdouble>(collector.roll));
 }
