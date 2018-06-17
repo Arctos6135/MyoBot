@@ -19,4 +19,14 @@ public class EulerOrientation {
 	public double getRoll() {
 		return roll;
 	}
+	
+	public double getYawDegrees() {
+		return Math.toDegrees(getYaw());
+	}
+	public double getPitchDegrees() {
+		return Math.toDegrees(getPitch());
+	}
+	public double getRollDegrees() {
+		return Math.toDegrees(getRoll());
+	}
 }

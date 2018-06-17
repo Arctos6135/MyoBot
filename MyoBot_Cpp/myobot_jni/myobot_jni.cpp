@@ -26,8 +26,6 @@ public:
 	myo::Quaternion<float> orientation;
 	//Raw orientation data; this quaternion is not in relation to the reference.
 	myo::Quaternion<float> orientationRaw;
-	//Keep a pointer so we can lock and unlock anytime
-	myo::Myo* theMyo = nullptr;
 
 	//If set to true, Euler angles will be inverted
 	//Since the direction of the roll, pitch and yaw depend on the Myo's x direction, this may be set
@@ -41,27 +39,16 @@ public:
 	void onUnpair(myo::Myo* myo, uint64_t timestamp) override {
 		onArm = false;
 		isUnlocked = false;
-		theMyo = nullptr;
 		active = false;
 	}
 
 	//Collect pose data
 	void onPose(myo::Myo* myo, uint64_t timestamp, myo::Pose pose) override {
-		//Update Myo pointer if necessary
-		if (!theMyo) {
-			theMyo = myo;
-		}
 		currentPose = pose;
-
-		myo->unlock(Myo::unlockHold);
 	}
 
 	//Collect orientation data
 	void onOrientationData(myo::Myo* myo, uint64_t timestamp, const myo::Quaternion<float>& quat) override {
-
-		if (!theMyo) {
-			theMyo = myo;
-		}
 
 		orientationRaw = myo::Quaternion<float>(quat);
 
@@ -86,25 +73,17 @@ public:
 	void onArmSync(myo::Myo* myo, uint64_t timestamp, myo::Arm arm, myo::XDirection xDirection, float rotation, myo::WarmupState warmupState) override {
 		onArm = true;
 		this->arm = arm;
-		theMyo = myo;
 	}
 
 	void onArmUnsync(myo::Myo* myo, uint64_t timestamp) override {
 		onArm = false;
-		theMyo = nullptr;
 	}
 
 	void onUnlock(myo::Myo* myo, uint64_t timestamp) override {
-		if (!theMyo) {
-			theMyo = myo;
-		}
 		isUnlocked = true;
 	}
 
 	void onLock(myo::Myo* myo, uint64_t timestamp) override {
-		if (!theMyo) {
-			theMyo = myo;
-		}
 		isUnlocked = false;
 	}
 
@@ -150,7 +129,6 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env
 			return false;
 		}
 		static SingleMyoDataCollector collector;
-		collector.theMyo = myo;
 		hub.addListener(&collector);
 
 		jclass myoClass = env->GetObjectClass(obj);

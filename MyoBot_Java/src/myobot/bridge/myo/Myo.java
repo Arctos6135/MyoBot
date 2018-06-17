@@ -182,9 +182,22 @@ public class Myo {
 		return !isLocked();
 	}
 	
+	/**
+	 * No locking policy. Under this, the Myo will remain locked or unlocked until told otherwise.
+	 */
 	public static final int LOCKING_POLICY_NONE = 0;
+	/**
+	 * Standard unlocking policy. Under this, the Myo will be unlocked by double-tapping, and will lock
+	 * after a short period of inactivity.
+	 */
 	public static final int LOCKING_POLICY_STANDARD = 1;
 	private native void __setLockingPolicy(int policy);
+	/**
+	 * Sets the locking policy of the Myo.
+	 * @param policy The locking policy, {@link #LOCKING_POLICY_NONE} or {@link #LOCKING_POLICY_STANDARD}
+	 * @throws MyoException If the Myo is not initialized
+	 * @throws IllegalArgumentException If the policy is invalid
+	 */
 	public void setLockingPolicy(int policy) {
 		if(policy != LOCKING_POLICY_NONE && policy != LOCKING_POLICY_STANDARD) {
 			throw new IllegalArgumentException("Invalid locking policy");
@@ -196,6 +209,12 @@ public class Myo {
 	public static final int VIBRATION_SHORT = 0;
 	public static final int VIBRATION_MEDIUM = 1;
 	public static final int VIBRATION_LONG = 2;
+	/**
+	 * Causes the Myo to vibrate.
+	 * @param type The type of vibration, {@link #VIBRATION_SHORT}, {@link #VIBRATION_MEDIUM} or {@link #VIBRATION_LONG}
+	 * @throws MyoException If the Myo is not initialized
+	 * @throws IllegalArgumentException If the type of vibration is invalid
+	 */
 	private native void __vibrate(int type);
 	public void vibrate(int type) {
 		if(type != VIBRATION_SHORT && type != VIBRATION_MEDIUM && type != VIBRATION_LONG) {
@@ -308,9 +327,7 @@ public class Myo {
 	 */
 	public void cleanup() {
 		checkInit();
-		if(initialized) {
-			lock();
-		}
+		lock();
 		stopHubThread();
 	}
 }
