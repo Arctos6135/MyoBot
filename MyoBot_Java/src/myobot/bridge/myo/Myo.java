@@ -43,6 +43,7 @@ public class Myo {
 	}
 	
 	private native void __runHub(int millis);
+	private native void __runHubOnce(int millis);
 	private class HubThread extends Thread {
 		
 		int millis;
@@ -108,6 +109,18 @@ public class Myo {
 		checkInit();
 		__runHub(millis);
 	}
+	/**
+	 * Runs the Myo Hub until a single event occurs, or until timeout. 
+	 * The Myo Hub needs to be run constantly to obtain data; so if the Hub thread is not running via 
+	 * {@link #startHubThread(int)}, this method must be called repeatedly in a loop.
+	 * @param millis The timeout
+	 * @throws MyoException If the Myo is not initialized
+	 * @see #runHub(int)
+	 */
+	public void runHubOnce(int millis) {
+		checkInit();
+		__runHubOnce(millis);
+	}
 	
 	private native boolean __lock();
 	/**
@@ -121,16 +134,33 @@ public class Myo {
 		}
 	}
 	
-	private native boolean __unlock();
+	/**
+	 * This unlock type unlocks the Myo until it is told to lock again.
+	 */
+	public static final int UNLOCK_HOLD = 0;
+	/**
+	 * This unlock type unlocks the Myo for a short period of time, then locks it again automatically.
+	 * Useful for allowing pose transitions.
+	 */
+	public static final int UNLOCK_TIMED = 1;
+	private native boolean __unlock(int type);
 	/**
 	 * Unlocks the Myo.
+	 * @param type The unlock type, {@link #UNLOCK_HOLD} or {@link #UNLOCK_TIMED}
+	 * @throws MyoException If the Myo is not initialized, or unlocking failed
+	 */
+	public void unlock(int type) {
+		checkInit();
+		if(!__unlock(type)) {
+			throw new MyoException("Failed to unlock Myo");
+		}
+	}
+	/**
+	 * Unlocks the Myo. Equivalent to calling {@link #unlock(int)} with {@link #UNLOCK_HOLD}
 	 * @throws MyoException If the Myo is not initialized, or unlocking failed
 	 */
 	public void unlock() {
-		checkInit();
-		if(!__unlock()) {
-			throw new MyoException("Failed to unlock Myo");
-		}
+		unlock(UNLOCK_HOLD);
 	}
 	
 	private native boolean __isLocked();
@@ -143,8 +173,47 @@ public class Myo {
 		checkInit();
 		return __isLocked();
 	}
+	/**
+	 * Test for whether the Myo is unlocked.
+	 * @return Whether the Myo is unlocked
+	 * @throws MyoException If the Myo is not initialized
+	 */
 	public boolean isUnlocked() {
 		return !isLocked();
+	}
+	
+	public static final int LOCKING_POLICY_NONE = 0;
+	public static final int LOCKING_POLICY_STANDARD = 1;
+	private native void __setLockingPolicy(int policy);
+	public void setLockingPolicy(int policy) {
+		if(policy != LOCKING_POLICY_NONE && policy != LOCKING_POLICY_STANDARD) {
+			throw new IllegalArgumentException("Invalid locking policy");
+		}
+		checkInit();
+		__setLockingPolicy(policy);
+	}
+	
+	public static final int VIBRATION_SHORT = 0;
+	public static final int VIBRATION_MEDIUM = 1;
+	public static final int VIBRATION_LONG = 2;
+	private native void __vibrate(int type);
+	public void vibrate(int type) {
+		if(type != VIBRATION_SHORT && type != VIBRATION_MEDIUM && type != VIBRATION_LONG) {
+			throw new IllegalArgumentException("Invalid vibration type");
+		}
+		checkInit();
+		__vibrate(type);
+	}
+	
+	private native void __notifyUserAction();
+	/**
+	 * Notifies the user that an event has been caused due to their action.
+	 * This will cause a short vibration in the Myo.
+	 * @throws MyoException If the Myo is not initialized
+	 */
+	public void notifyUserAction() {
+		checkInit();
+		__notifyUserAction();
 	}
 	
 	private native boolean __isOnArm();
@@ -158,8 +227,17 @@ public class Myo {
 		return __isOnArm();
 	}
 	
+	/**
+	 * Left arm.
+	 */
 	public static final int ARM_LEFT = 0;
+	/**
+	 * Right arm.
+	 */
 	public static final int ARM_RIGHT = 1;
+	/**
+	 * Unknown arm, if the Myo is not on an arm.
+	 */
 	public static final int ARM_UNKNOWN = 2;
 	private native int __getArm();
 	/**
@@ -195,6 +273,33 @@ public class Myo {
 		checkInit();
 		__getOrientation();
 		return new EulerOrientation(result_yaw, result_pitch, result_roll);
+	}
+	
+	public static final int POSE_REST = 0;
+	public static final int POSE_FIST = 1;
+	public static final int POSE_SPREADFINGERS = 2;
+	public static final int POSE_WAVEIN = 3;
+	public static final int POSE_WAVEOUT = 4;
+	public static final int POSE_DOUBLETAP = 5;
+	public static final int POSE_UNKNOWN = 6;
+	private native int __getPose();
+	/**
+	 * Gets the current Pose of the user. This can be one of the following:
+	 * <ul>
+	 * 	<li>{@link #POSE_REST}</li>
+	 * 	<li>{@link #POSE_FIST}</li>
+	 * 	<li>{@link #POSE_SPREADFINGERS}</li>
+	 * 	<li>{@link #POSE_WAVEIN}</li>
+	 * 	<li>{@link #POSE_WAVEOUT}</li>
+	 * 	<li>{@link #POSE_DOUBLETAP}</li>
+	 * 	<li>{@link #POSE_UNKNOWN}</li>
+	 * </ul>
+	 * @return The pose of the user.
+	 * @throws MyoException If the Myo is not initialized
+	 */
+	public int getPose() {
+		checkInit();
+		return __getPose();
 	}
 	
 	/**

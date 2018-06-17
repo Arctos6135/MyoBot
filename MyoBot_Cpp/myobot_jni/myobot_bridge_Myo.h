@@ -7,12 +7,40 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef myobot_bridge_myo_Myo_UNLOCK_HOLD
+#define myobot_bridge_myo_Myo_UNLOCK_HOLD 0L
+#undef myobot_bridge_myo_Myo_UNLOCK_TIMED
+#define myobot_bridge_myo_Myo_UNLOCK_TIMED 1L
+#undef myobot_bridge_myo_Myo_LOCKING_POLICY_NONE
+#define myobot_bridge_myo_Myo_LOCKING_POLICY_NONE 0L
+#undef myobot_bridge_myo_Myo_LOCKING_POLICY_STANDARD
+#define myobot_bridge_myo_Myo_LOCKING_POLICY_STANDARD 1L
+#undef myobot_bridge_myo_Myo_VIBRATION_SHORT
+#define myobot_bridge_myo_Myo_VIBRATION_SHORT 0L
+#undef myobot_bridge_myo_Myo_VIBRATION_MEDIUM
+#define myobot_bridge_myo_Myo_VIBRATION_MEDIUM 1L
+#undef myobot_bridge_myo_Myo_VIBRATION_LONG
+#define myobot_bridge_myo_Myo_VIBRATION_LONG 2L
 #undef myobot_bridge_myo_Myo_ARM_LEFT
 #define myobot_bridge_myo_Myo_ARM_LEFT 0L
 #undef myobot_bridge_myo_Myo_ARM_RIGHT
 #define myobot_bridge_myo_Myo_ARM_RIGHT 1L
 #undef myobot_bridge_myo_Myo_ARM_UNKNOWN
 #define myobot_bridge_myo_Myo_ARM_UNKNOWN 2L
+#undef myobot_bridge_myo_Myo_POSE_REST
+#define myobot_bridge_myo_Myo_POSE_REST 0L
+#undef myobot_bridge_myo_Myo_POSE_FIST
+#define myobot_bridge_myo_Myo_POSE_FIST 1L
+#undef myobot_bridge_myo_Myo_POSE_SPREADFINGERS
+#define myobot_bridge_myo_Myo_POSE_SPREADFINGERS 2L
+#undef myobot_bridge_myo_Myo_POSE_WAVEIN
+#define myobot_bridge_myo_Myo_POSE_WAVEIN 3L
+#undef myobot_bridge_myo_Myo_POSE_WAVEOUT
+#define myobot_bridge_myo_Myo_POSE_WAVEOUT 4L
+#undef myobot_bridge_myo_Myo_POSE_DOUBLETAP
+#define myobot_bridge_myo_Myo_POSE_DOUBLETAP 5L
+#undef myobot_bridge_myo_Myo_POSE_UNKNOWN
+#define myobot_bridge_myo_Myo_POSE_UNKNOWN 6L
 	/*
 	* Class:     myobot_bridge_myo_Myo
 	* Method:    __initialize
@@ -31,6 +59,14 @@ extern "C" {
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
+	* Method:    __runHubOnce
+	* Signature: (I)V
+	*/
+	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1runHubOnce
+	(JNIEnv *, jobject, jint);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
 	* Method:    __lock
 	* Signature: ()Z
 	*/
@@ -40,10 +76,10 @@ extern "C" {
 	/*
 	* Class:     myobot_bridge_myo_Myo
 	* Method:    __unlock
-	* Signature: ()Z
+	* Signature: (I)Z
 	*/
 	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1unlock
-	(JNIEnv *, jobject);
+	(JNIEnv *, jobject, jint);
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
@@ -51,6 +87,30 @@ extern "C" {
 	* Signature: ()Z
 	*/
 	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isLocked
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __setLockingPolicy
+	* Signature: (I)V
+	*/
+	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1setLockingPolicy
+	(JNIEnv *, jobject, jint);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __vibrate
+	* Signature: (I)V
+	*/
+	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1vibrate
+	(JNIEnv *, jobject, jint);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __notifyUserAction
+	* Signature: ()V
+	*/
+	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1notifyUserAction
 	(JNIEnv *, jobject);
 
 	/*
@@ -83,6 +143,14 @@ extern "C" {
 	* Signature: ()V
 	*/
 	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1getOrientation
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __getPose
+	* Signature: ()I
+	*/
+	JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getPose
 	(JNIEnv *, jobject);
 
 #ifdef __cplusplus
