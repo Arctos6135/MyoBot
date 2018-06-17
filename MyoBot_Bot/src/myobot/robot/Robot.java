@@ -7,6 +7,9 @@
 
 package myobot.robot;
 
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import myobot.robot.commands.NetworkTablesDrive;
@@ -27,6 +30,10 @@ public class Robot extends TimedRobot {
 	public static Intake intake;
 	public static OI oi;
 	
+	public static NetworkTableInstance ntInstance;
+	public static NetworkTable ntTable;
+	public static NetworkTableEntry ntLeftDrive, ntRightDrive, ntIntake, ntElevator;
+	
 	//Shared default command between all subsystems
 	public static NetworkTablesDrive defaultCommand;
 
@@ -37,6 +44,13 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotInit() {
 		oi = new OI();
+		
+		ntInstance = NetworkTableInstance.getDefault();
+		ntTable = ntInstance.getTable("myobot");
+		ntLeftDrive = ntTable.getEntry("leftDrive");
+		ntRightDrive = ntTable.getEntry("rightDrive");
+		ntIntake = ntTable.getEntry("intake");
+		ntElevator = ntTable.getEntry("elevator");
 		
 		driveTrain = new DriveTrain();
 		elevator = new Elevator();
