@@ -10,6 +10,7 @@ Debug/
 Release/
 ipch/
 *.class
+myo/myobot_bridge_myo_Myo.h
 # Include MyoBot/bin however
 !/bin/
 # Logs
