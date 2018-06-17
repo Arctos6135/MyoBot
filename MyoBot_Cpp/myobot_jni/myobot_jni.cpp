@@ -129,20 +129,16 @@ public:
 	}
 };
 
-Myo* myo = nullptr;
-Hub* hub = nullptr;
-SingleMyoDataCollector* collector = nullptr;
-
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj) {
 
 	try {
 		Hub hub("org.usfirst.frc.team6135.MyoBot");
-		myo = hub.waitForMyo(10000);
+		Myo *myo = hub.waitForMyo(10000);
 		if (!myo) {
 			return false;
 		}
 		SingleMyoDataCollector smdc;
-		collector = &smdc;
+		SingleMyoDataCollector *collector = &smdc;
 		collector->theMyo = myo;
 		hub.addListener(collector);
 
