@@ -132,15 +132,14 @@ public:
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj) {
 
 	try {
-		Hub hub("org.usfirst.frc.team6135.MyoBot");
+		static Hub hub("org.usfirst.frc.team6135.MyoBot");
 		Myo *myo = hub.waitForMyo(10000);
 		if (!myo) {
 			return false;
 		}
-		SingleMyoDataCollector smdc;
-		SingleMyoDataCollector *collector = &smdc;
-		collector->theMyo = myo;
-		hub.addListener(collector);
+		static SingleMyoDataCollector collector;
+		collector.theMyo = myo;
+		hub.addListener(&collector);
 
 		jclass myoClass = env->GetObjectClass(obj);
 		jfieldID fidMyoPointer = env->GetFieldID(myoClass, "_myoPointer", "J");
