@@ -129,6 +129,18 @@ public:
 	}
 };
 
+#define HANDLE_MYO "_myoHandle"
+#define HANDLE_HUB "_hubHandle"
+#define HANDLE_COLLECTOR "_collectorHandle"
+typedef SingleMyoDataCollector Collector;
+
+template <typename T>
+T* getHandle(JNIEnv *env, jobject obj, const char *name) {
+	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), name, "J");
+	jlong l = env->GetLongField(obj, fid);
+	return reinterpret_cast<T*>(l);
+}
+
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj) {
 
 	try {
@@ -142,9 +154,9 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env
 		hub.addListener(&collector);
 
 		jclass myoClass = env->GetObjectClass(obj);
-		jfieldID fidMyoPointer = env->GetFieldID(myoClass, "_myoPointer", "J");
-		jfieldID fidHubPointer = env->GetFieldID(myoClass, "_hubPointer", "J");
-		jfieldID fidCollectorPointer = env->GetFieldID(myoClass, "_collectorPointer", "J");
+		jfieldID fidMyoPointer = env->GetFieldID(myoClass, HANDLE_MYO, "J");
+		jfieldID fidHubPointer = env->GetFieldID(myoClass, HANDLE_HUB, "J");
+		jfieldID fidCollectorPointer = env->GetFieldID(myoClass, HANDLE_COLLECTOR, "J");
 		env->SetLongField(obj, fidMyoPointer, (jlong)myo);
 		env->SetLongField(obj, fidHubPointer, (jlong)&hub);
 		env->SetLongField(obj, fidCollectorPointer, (jlong)&collector);
@@ -155,28 +167,15 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env
 	return true;
 }
 
-jlong getMyoPointer(JNIEnv *env, jobject obj) {
-	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_myoPointer", "J");
-	return env->GetLongField(obj, fid);
-}
-jlong getHubPointer(JNIEnv *env, jobject obj) {
-	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_hubPointer", "J");
-	return env->GetLongField(obj, fid);
-}
-jlong getCollectorPointer(JNIEnv *env, jobject obj) {
-	jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "_collectorPointer", "J");
-	return env->GetLongField(obj, fid);
-}
-
 JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1runHub(JNIEnv *env, jobject obj, jint millis) {
-	Hub *hub = (Hub *)getHubPointer(env, obj);
+	Hub *hub = getHandle<Hub>(env, obj, HANDLE_HUB);
 	if (hub) {
 		hub->run(millis);
 	}
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1lock(JNIEnv *env, jobject obj) {
-	Myo *myo = (Myo *)getMyoPointer(env, obj);
+	Myo *myo = getHandle<Myo>(env, obj, HANDLE_MYO);
 	if (!myo) {
 		return false;
 	}
@@ -185,7 +184,7 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1lock(JNIEnv *env, jobj
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1unlock(JNIEnv *env, jobject obj) {
-	Myo *myo = (Myo *)getMyoPointer(env, obj);
+	Myo *myo = getHandle<Myo>(env, obj, HANDLE_MYO);
 	if (!myo) {
 		return false;
 	}
@@ -194,15 +193,15 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1unlock(JNIEnv *env, jo
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isLocked(JNIEnv *env, jobject obj) {
-	return !((SingleMyoDataCollector *)getCollectorPointer(env, obj))->isUnlocked;
+	return !getHandle<Collector>(env, obj, HANDLE_COLLECTOR)->isUnlocked;
 }
 
 JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1isOnArm(JNIEnv *env, jobject obj) {
-	return ((SingleMyoDataCollector *)getCollectorPointer(env, obj))->onArm;
+	return getHandle<Collector>(env, obj, HANDLE_COLLECTOR)->onArm;
 }
 
 JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getArm(JNIEnv *env, jobject obj) {
-	switch (((SingleMyoDataCollector *)getCollectorPointer(env, obj))->arm) {
+	switch (getHandle<Collector>(env, obj, HANDLE_COLLECTOR)->arm) {
 	case Arm::armLeft:
 		return 0;
 	case Arm::armRight:
@@ -214,12 +213,12 @@ JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getArm(JNIEnv *env, jobjec
 }
 
 JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1updateRef(JNIEnv *env, jobject obj) {
-	SingleMyoDataCollector *collector = (SingleMyoDataCollector *)getCollectorPointer(env, obj);
+	SingleMyoDataCollector *collector = getHandle<Collector>(env, obj, HANDLE_COLLECTOR);
 	collector->setRefOrientation(collector->orientationRaw);
 }
 
 JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1getOrientation(JNIEnv *env, jobject obj) {
-	SingleMyoDataCollector *collector = (SingleMyoDataCollector *)getCollectorPointer(env, obj);
+	SingleMyoDataCollector *collector = getHandle<Collector>(env, obj, HANDLE_COLLECTOR);
 	jclass myoClass = env->GetObjectClass(obj);
 
 	jfieldID fidYaw = env->GetFieldID(myoClass, "result_yaw", "D");
