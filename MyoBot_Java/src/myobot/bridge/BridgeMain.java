@@ -7,6 +7,8 @@ import java.awt.FlowLayout;
 import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
@@ -22,8 +24,9 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
-import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -33,8 +36,20 @@ import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import myobot.bridge.myo.Myo;
 import myobot.bridge.myo.MyoException;
+import myobot.bridge.ui.AngleVisualizer;
 
 public class BridgeMain {
+	
+	public static final Color LF_BACKGROUND = new Color(230, 230, 230);
+	public static final Color LF_COLOR = new Color(34, 167, 240);
+	public static final int DELAY_TOOLTIP = 500;
+	public static final String TOOLTIP_UNLOCKED = "<html>Myo is unlocked.<br>Click to lock.</html>";
+	public static final String TOOLTIP_LOCKED = "<html>Myo is locked.<br>Click to unlock.</html>";
+	public static final String TOOLTIP_ONARM = "<html>Myo is on arm.</html>";
+	public static final String TOOLTIP_OFFARM = "<html>Myo is not on arm.</html>";
+	public static final String TOOLTIP_NORMAL = "<html>Orientation is not inverted.<br>Click to invert.</html>";
+	public static final String TOOLTIP_INVERTED = "<html>Orientation is inverted.<br>Click to return to normal.</html>";
+	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
 	static boolean invertAngles = false;
@@ -50,9 +65,13 @@ public class BridgeMain {
 	static JButton invertButton;
 	//Different icons
 	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon;
+	//Labels for the icons
+	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel;
+	static AngleVisualizer yawVisualizer, pitchVisualizer, rollVisualizer;
+	static JPanel angleVisualizerPanel;
 	//Last time's status
 	//Used to determine whether or not to update the icons
-	static boolean lastUnlocked = false, lastOnArm = false, lastInverted = invertAngles;
+	static boolean lastOnArm = false;
 	//The "connecting to myo" dialog
 	static JDialog connectingDialog;
 	//Different icon images
@@ -61,6 +80,8 @@ public class BridgeMain {
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
 	static boolean uiIsSetUp = false;
+	//Used to determine whether the main window has been closed, since we can't use EXIT_ON_CLOSE
+	static boolean exit = false;
 	
 	//NT stuff
 	static NetworkTableInstance ntInstance;
@@ -101,8 +122,9 @@ public class BridgeMain {
 				| UnsupportedLookAndFeelException e) {
 			e.printStackTrace();
 		}
-		UIManager.getLookAndFeelDefaults().put("background", new Color(230, 230, 230));
-		UIManager.put("nimbusOrange", new Color(34, 167, 240));
+		UIManager.getLookAndFeelDefaults().put("background", LF_BACKGROUND);
+		UIManager.put("nimbusOrange", LF_COLOR);
+		ToolTipManager.sharedInstance().setInitialDelay(DELAY_TOOLTIP);
 	}
 	
 	public static void constructAndShowUI() throws IOException {
@@ -110,6 +132,7 @@ public class BridgeMain {
 		
 		mainFrame = new JFrame("MyoBot Control Center");
 		mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
 		
 		//"Connecting to Myo" Dialog
 		connectingDialog = new JDialog(mainFrame, "Please Wait...");
@@ -164,11 +187,13 @@ public class BridgeMain {
 				myo.unlock();
 				lockUnlockButton.setText("Lock");
 				unlockStatusIcon.setImage(iconUnlocked);
+				unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
 			}
 			else {
 				myo.lock();
 				lockUnlockButton.setText("Unlock");
 				unlockStatusIcon.setImage(iconLocked);
+				unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
 			}
 			topBarPanel.revalidate();
 			topBarPanel.repaint();
@@ -176,12 +201,15 @@ public class BridgeMain {
 		Runnable invertUninvertAngles = () -> {
 			invertAngles = !invertAngles;
 			invertStatusIcon.setImage(invertAngles ? iconInverted : iconNormal);
+			invertStatusLabel.setToolTipText(invertAngles ? TOOLTIP_INVERTED : TOOLTIP_NORMAL);
+			
 			topBarPanel.revalidate();
 			topBarPanel.repaint();
 		};
 		
 		//Add our ImageIcons to the top bar
-		JLabel unlockStatusLabel = new JLabel(unlockStatusIcon);
+		unlockStatusLabel = new JLabel(unlockStatusIcon);
+		unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
 		//Make them clickable
 		unlockStatusLabel.addMouseListener(new MouseAdapter() {
 			@Override
@@ -190,15 +218,18 @@ public class BridgeMain {
 			}
 		});
 		topBarPanel.add(unlockStatusLabel);
-		topBarPanel.add(new JLabel(onArmStatusIcon));
-		JLabel invertedStatusLabel = new JLabel(invertStatusIcon);
-		invertedStatusLabel.addMouseListener(new MouseAdapter() {
+		onArmStatusLabel = new JLabel(onArmStatusIcon);
+		onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
+		topBarPanel.add(onArmStatusLabel);
+		invertStatusLabel = new JLabel(invertStatusIcon);
+		invertStatusLabel.setToolTipText(TOOLTIP_NORMAL);
+		invertStatusLabel.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				invertUninvertAngles.run();
 			}
 		});
-		topBarPanel.add(invertedStatusLabel);
+		topBarPanel.add(invertStatusLabel);
 		
 		//Buttons have their own sub-panel so they can have different gaps
 		JPanel topButtonsPanel = new JPanel();
@@ -215,8 +246,16 @@ public class BridgeMain {
 		topButtonsPanel.add(lockUnlockButton);
 		topButtonsPanel.add(invertButton);
 		topBarPanel.add(topButtonsPanel);
-		
 		mainFrame.add(topBarPanel);
+		
+		angleVisualizerPanel = new JPanel();
+		yawVisualizer = new AngleVisualizer(96);
+		pitchVisualizer = new AngleVisualizer(96);
+		rollVisualizer = new AngleVisualizer(96);
+		angleVisualizerPanel.add(yawVisualizer);
+		angleVisualizerPanel.add(pitchVisualizer);
+		angleVisualizerPanel.add(rollVisualizer);
+		mainFrame.add(angleVisualizerPanel);
 		
 		mainFrame.setVisible(true);
 		
@@ -224,7 +263,7 @@ public class BridgeMain {
 		JPanel promptPanel = new JPanel();
 		promptPanel.setLayout(new BorderLayout());
 		promptPanel.add(new JLabel("Enter FRC Team Number, or 0 for Dry-Run:"), BorderLayout.CENTER);
-		JTextArea teamNumber = new JTextArea();
+		JTextField teamNumber = new JTextField();
 		promptPanel.add(teamNumber, BorderLayout.PAGE_END);
 		//Initialize NT
 		ntInstance = NetworkTableInstance.getDefault();
@@ -255,7 +294,23 @@ public class BridgeMain {
 	}
 	
 	public static void updateUI() {
-		
+		//No need to worry about locked/unlocked or inverted/normal
+		boolean onArm = myo.isOnArm();
+		if(onArm != lastOnArm) {
+			if(onArm) {
+				onArmStatusIcon.setImage(iconOnArm);
+				onArmStatusLabel.setToolTipText(TOOLTIP_ONARM);
+			}
+			else {
+				onArmStatusIcon.setImage(iconOffArm);
+				onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
+			}
+			
+			lastOnArm = onArm;
+			topBarPanel.revalidate();
+			topBarPanel.repaint();
+			
+		}
 	}
 	
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
@@ -306,7 +361,19 @@ public class BridgeMain {
 		connectingDialog.setVisible(false);
 		connectingDialog.dispose();
 		
-		myo.startHubThread(100);
+		//Add close listener to know when to exit
+		mainFrame.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosed(WindowEvent e) {
+				exit = true;
+			}
+		});
+		
+		while(!exit) {
+			myo.runHub(100);
+			
+			updateUI();
+		}
 	}
 
 }

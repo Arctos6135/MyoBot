@@ -235,7 +235,7 @@ public class Myo {
 	private native synchronized void __setLockingPolicy(int policy);
 	/**
 	 * Sets the locking policy of the Myo.
-	 * @param policy The locking policy, {@link #LOCKING_POLICY_NONE} or {@link #LOCKING_POLICY_STANDARD}
+	 * @param policy The locking policy, {@link #LOCKING_POLICY_NONE} or {@link #LOCKING_POLICY_STANDARD}.
 	 * @throws MyoException If the Myo is not initialized
 	 * @throws IllegalArgumentException If the policy is invalid
 	 */
