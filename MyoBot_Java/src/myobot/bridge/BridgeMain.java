@@ -102,6 +102,7 @@ public class BridgeMain {
 			e.printStackTrace();
 		}
 		UIManager.getLookAndFeelDefaults().put("background", new Color(230, 230, 230));
+		UIManager.put("nimbusOrange", new Color(34, 167, 240));
 	}
 	
 	public static void constructAndShowUI() throws IOException {
@@ -302,8 +303,8 @@ public class BridgeMain {
 		}
 		myo.setLockingPolicy(Myo.LOCKING_POLICY_NONE);
 		//Dispose of the dialog
-		//connectingDialog.setVisible(false);
-		//connectingDialog.dispose();
+		connectingDialog.setVisible(false);
+		connectingDialog.dispose();
 		
 		myo.startHubThread(100);
 	}
