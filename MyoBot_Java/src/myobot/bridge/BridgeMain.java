@@ -38,6 +38,11 @@ import myobot.bridge.myo.Myo;
 import myobot.bridge.myo.MyoException;
 
 public class BridgeMain {
+	//If true then Euler angles will be inverted
+	//This is for when the Myo is worn upside down
+	static boolean invertAngles = false;
+	
+	static final Myo myo = new Myo();
 
 	//Main JFrame
 	static JFrame mainFrame;
@@ -50,21 +55,15 @@ public class BridgeMain {
 	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertedStatusIcon;
 	//Last time's status
 	//Used to determine whether or not to update the icons
-	static boolean lastUnlocked = false, lastOnArm = false, lastInverted = false;
+	static boolean lastUnlocked = false, lastOnArm = false, lastInverted = invertAngles;
 	//The "connecting to myo" dialog
 	static JDialog connectingToMyoDialog;
 	//Different icon images
 	static Image iconLocked, iconUnlocked, iconOnArm, iconOffArm, iconNormal, iconInverted;
 	
-	static final Myo myo = new Myo();
-	
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
 	static boolean uiIsSetUp = false;
-	
-	//If true then Euler angles will be inverted
-	//This is for when the Myo is worn upside down
-	static boolean invertAngles = false;
 	
 	//NT stuff
 	static NetworkTableInstance ntInstance;
@@ -220,6 +219,7 @@ public class BridgeMain {
 	
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
 		
+		//Add shutdown hook to make sure Myo is cleaned up
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
@@ -239,6 +239,7 @@ public class BridgeMain {
 			}
 		});
 		
+		//Wait until UI is set up
 		while(!uiIsSetUp) {
 			try {
 				Thread.sleep(500);
@@ -249,44 +250,20 @@ public class BridgeMain {
 			}
 		}
 		
-		//Connect to Myo in the background
-		SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
-
-			@Override
-			protected Boolean doInBackground() {
-				try {
-					myo.init("org.usfirst.frc.team6135.MyoBot");
-					myo.setLockingPolicy(Myo.LOCKING_POLICY_NONE);
-				}
-				catch(MyoException e) {
-					return false;
-				}
-				return true;
-			}
-			
-			@Override
-			protected void done() {
-				connectingToMyoDialog.setVisible(false);
-				connectingToMyoDialog.dispose();
-			}
-		};
-		worker.execute();
-		while(!worker.isDone()) {
-			try {
-				Thread.sleep(500);
-			} 
-			catch (InterruptedException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
+		//Initialize Myo
+		try {
+			myo.init("org.usfirst.frc.team6135.MyoBot");
 		}
-
-		if(!worker.get()) {
+		catch(MyoException e) {
 			SwingUtilities.invokeLater(() -> {
 				JOptionPane.showMessageDialog(mainFrame, "Cannot connect to Myo!\nThe program will now exit.", "Error", JOptionPane.ERROR_MESSAGE);
 				System.exit(0);
 			});
 		}
+		myo.setLockingPolicy(Myo.LOCKING_POLICY_NONE);
+		//Dispose of the dialog
+		connectingToMyoDialog.setVisible(false);
+		connectingToMyoDialog.dispose();
 		
 		myo.startHubThread(100);
 	}
