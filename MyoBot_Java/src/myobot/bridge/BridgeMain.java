@@ -5,9 +5,13 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Image;
+import java.awt.Window;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -108,7 +112,7 @@ public class BridgeMain {
 		setupLookAndFeel();
 		
 		mainFrame = new JFrame("MyoBot Control Center");
-		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		
 		//"Connecting to Myo" Dialog
 		connectingToMyoDialog = new JDialog(mainFrame, "Please Wait...");
