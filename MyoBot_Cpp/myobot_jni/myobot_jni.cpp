@@ -120,16 +120,18 @@ T* getHandle(JNIEnv *env, jobject obj, const char *name) {
 	return reinterpret_cast<T*>(l);
 }
 
-JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj) {
+JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env, jobject obj, jstring appID) {
 
 	try {
-		static Hub hub("org.usfirst.frc.team6135.MyoBot");
+		const char* appIDNative = env->GetStringUTFChars(appID, false);
+		static Hub hub(appIDNative);
+		env->ReleaseStringUTFChars(appID, appIDNative);
 		Myo *myo = hub.waitForMyo(10000);
 		if (!myo) {
 			return false;
 		}
-		static SingleMyoDataCollector collector;
-		hub.addListener(&collector);
+		static Collector dataCollector = Collector();
+		hub.addListener(&dataCollector);
 
 		jclass myoClass = env->GetObjectClass(obj);
 		jfieldID fidMyoPointer = env->GetFieldID(myoClass, HANDLE_MYO, "J");
@@ -137,7 +139,7 @@ JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize(JNIEnv *env
 		jfieldID fidCollectorPointer = env->GetFieldID(myoClass, HANDLE_COLLECTOR, "J");
 		env->SetLongField(obj, fidMyoPointer, (jlong)myo);
 		env->SetLongField(obj, fidHubPointer, (jlong)&hub);
-		env->SetLongField(obj, fidCollectorPointer, (jlong)&collector);
+		env->SetLongField(obj, fidCollectorPointer, (jlong)&dataCollector);
 	}
 	catch (...) {
 		return false;
@@ -266,4 +268,12 @@ JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getPose(JNIEnv *env, jobje
 		return myobot_bridge_myo_Myo_POSE_DOUBLETAP;
 	}
 	return myobot_bridge_myo_Myo_POSE_UNKNOWN;
+}
+
+JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1cleanup(JNIEnv *env, jobject obj) {
+	Myo *myo = getHandle<Myo>(env, obj, HANDLE_MYO);
+	Hub *hub = getHandle<Hub>(env, obj, HANDLE_HUB);
+	Collector *collector = getHandle<Collector>(env, obj, HANDLE_COLLECTOR);
+
+	hub->~Hub();
 }

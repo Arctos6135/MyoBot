@@ -26,17 +26,18 @@ public class Myo {
 		}
 	}
 	
-	private native boolean __initialize();
+	private native boolean __initialize(String appID);
 	//Raw pointers to the Myo, Hub, and Data Collector
 	private long _myoHandle = 0;
 	private long _collectorHandle = 0;
 	private long _hubHandle = 0;
 	/**
 	 * Initializes the Myo.
+	 * @param appID The application identifier
 	 * @throws MyoException If the initialization fails
 	 */
-	public void init() {
-		initialized = __initialize();
+	public void init(String appID) {
+		initialized = __initialize(appID);
 		if(!initialized) {
 			throw new MyoException("Failed to initialize Myo connection");
 		}
@@ -321,6 +322,7 @@ public class Myo {
 		return __getPose();
 	}
 	
+	private native void __cleanup();
 	/**
 	 * Cleans up the Myo.
 	 * @throws MyoException If the Myo is not initialized
@@ -329,5 +331,7 @@ public class Myo {
 		checkInit();
 		lock();
 		stopHubThread();
+		initialized = false;
+		__cleanup();
 	}
 }

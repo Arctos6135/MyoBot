@@ -44,10 +44,10 @@ extern "C" {
 	/*
 	* Class:     myobot_bridge_myo_Myo
 	* Method:    __initialize
-	* Signature: ()Z
+	* Signature: (Ljava/lang/String;)Z
 	*/
 	JNIEXPORT jboolean JNICALL Java_myobot_bridge_myo_Myo__1_1initialize
-	(JNIEnv *, jobject);
+	(JNIEnv *, jobject, jstring);
 
 	/*
 	* Class:     myobot_bridge_myo_Myo
@@ -151,6 +151,14 @@ extern "C" {
 	* Signature: ()I
 	*/
 	JNIEXPORT jint JNICALL Java_myobot_bridge_myo_Myo__1_1getPose
+	(JNIEnv *, jobject);
+
+	/*
+	* Class:     myobot_bridge_myo_Myo
+	* Method:    __cleanup
+	* Signature: ()V
+	*/
+	JNIEXPORT void JNICALL Java_myobot_bridge_myo_Myo__1_1cleanup
 	(JNIEnv *, jobject);
 
 #ifdef __cplusplus
