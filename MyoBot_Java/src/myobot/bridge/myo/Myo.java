@@ -32,11 +32,45 @@ public class Myo {
 	private long _collectorHandle = 0;
 	private long _hubHandle = 0;
 	/**
-	 * Initializes the Myo.
+	 * Initializes the Myo.<br>
+	 * <br>
+	 * <em>Note: The application identifier must follow a reverse domain format, and have 3 or more segments.
+	 * Additional details can be found <a href="https://developer.thalmic.com/docs/api_reference/platform/classmyo_1_1_hub.html#a26b827fd42e27b8be029680c9706dd15">here.</a></em>
 	 * @param appID The application identifier
 	 * @throws MyoException If the initialization fails
 	 */
 	public void init(String appID) {
+		String[] segments = appID.split("\\.");
+		if(segments.length < 3) {
+			throw new IllegalArgumentException("Application identifier must consist of 3 or more segments");
+		}
+		for(int i = 0; i < segments.length; i ++) {
+			if(segments[i].length() < 1) {
+				throw new IllegalArgumentException("Invalid application identifier");
+			}
+			if(i == 0) {
+				for(int j = 0; j < segments[i].length(); j ++) {
+					if(!Character.isLetterOrDigit(segments[i].charAt(j))) {
+						throw new IllegalArgumentException("First segment of application identifier must only contain alphanumeric characters");
+					}
+				}
+				continue;
+			}
+			
+			for(int j = 0; j < segments[i].length(); j ++) {
+				if(!Character.isLetterOrDigit(segments[i].charAt(j))) {
+					if(segments[i].charAt(j) == '_' || segments[i].charAt(j) == '-') {
+						if(j == 0 || j == segments[i].length() - 1) {
+							throw new IllegalArgumentException("Dashes and underscores cannot be at the beginning or end of a segment of the application identifier");
+						}
+					}
+					else {
+						throw new IllegalArgumentException("Application identifier can only consist of alphanumeric characters, dashes or underscores");
+					}
+				}
+			}
+		}
+		
 		initialized = __initialize(appID);
 		if(!initialized) {
 			throw new MyoException("Failed to initialize Myo connection");
