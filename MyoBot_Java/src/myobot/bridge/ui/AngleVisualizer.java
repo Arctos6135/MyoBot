@@ -23,6 +23,7 @@ public class AngleVisualizer extends JPanel {
 	Image overlayImage;
 	double angle = 0;
 	double offset = 0;
+	
 	public AngleVisualizer(int size, double offset) throws IOException {
 		super();
 		this.size = size;

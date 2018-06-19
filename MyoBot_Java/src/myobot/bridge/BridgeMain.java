@@ -60,11 +60,14 @@ public class BridgeMain {
 	public static final String TOOLTIP_OFFARM = "<html>Myo is not on arm.</html>";
 	public static final String TOOLTIP_NORMAL = "<html>Orientation is not inverted.<br>Click to invert.</html>";
 	public static final String TOOLTIP_INVERTED = "<html>Orientation is inverted.<br>Click to return to normal.</html>";
+	public static final int GYRO_SIZE = 80;
+	public static final int SPEEDOMETER_SIZE = 80;
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
 	public static final Dimension VERTICAL_SPACING_SMALL = new Dimension(1, 5);
 	public static final Dimension TEXT_FIELD_MAX_SIZE = new Dimension(80, Integer.MAX_VALUE);
 	public static final Dimension SMALL_ICON_SIZE = new Dimension(24, 24);
 	public static final Dimension POSE_ICON_SIZE = new Dimension(100, 100);
+	public static final Dimension DIRECTION_ICON_SIZE = new Dimension(64, 64);
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -92,6 +95,11 @@ public class BridgeMain {
 	static JPanel posePanel;
 	static JLabel poseLabel;
 	static JLabel poseNameLabel;
+	//Speedometer components
+	static JPanel speedometerPanel;
+	static JPanel driveSpeedPanel;
+	static JPanel elevatorSpeedPanel;
+	static JPanel intakeSpeedPanel;
 	//Last time's status
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
@@ -101,6 +109,7 @@ public class BridgeMain {
 	//Different icon images
 	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
+	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight;
 	
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
@@ -344,7 +353,7 @@ public class BridgeMain {
 		yawLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		yawPanel.add(yawLabel);
 		yawPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
-		yawVisualizer = new AngleVisualizer(80);
+		yawVisualizer = new AngleVisualizer(GYRO_SIZE);
 		yawPanel.add(yawVisualizer);
 		yawPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
 		yawField = new JTextField();
@@ -363,7 +372,7 @@ public class BridgeMain {
 		pitchLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		pitchPanel.add(pitchLabel);
 		pitchPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
-		pitchVisualizer = new AngleVisualizer(80);
+		pitchVisualizer = new AngleVisualizer(GYRO_SIZE);
 		pitchPanel.add(pitchVisualizer);
 		pitchPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
 		pitchField = new JTextField();
@@ -382,7 +391,7 @@ public class BridgeMain {
 		rollLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		rollPanel.add(rollLabel);
 		rollPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
-		rollVisualizer = new AngleVisualizer(80);
+		rollVisualizer = new AngleVisualizer(GYRO_SIZE);
 		rollPanel.add(rollVisualizer);
 		rollPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
 		rollField = new JTextField();
