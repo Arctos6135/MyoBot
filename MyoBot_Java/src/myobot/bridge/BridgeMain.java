@@ -61,6 +61,7 @@ public class BridgeMain {
 	public static final String TOOLTIP_INVERTED = "<html>Orientation is inverted.<br>Click to return to normal.</html>";
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
 	public static final Dimension VERTICAL_SPACING_SMALL = new Dimension(1, 5);
+	public static final Dimension TEXT_FIELD_MAX_SIZE = new Dimension(80, Integer.MAX_VALUE);
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -285,7 +286,7 @@ public class BridgeMain {
 		
 		updateRefButton = new JButton();
 		@SuppressWarnings("serial")
-		Action updateRefAction = new AbstractAction("Update Reference Orientation") {
+		Action updateRefAction = new AbstractAction("Reset Orientation") {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				myo.updateReferenceOrientation();
@@ -302,8 +303,10 @@ public class BridgeMain {
 		
 		//The panel with the orientation
 		angleVisualizerPanel = new JPanel();
+		angleVisualizerPanel.setLayout(new BoxLayout(angleVisualizerPanel, BoxLayout.X_AXIS));
 		angleVisualizerPanel.setBorder(BorderFactory.createTitledBorder("Orientation"));
 		
+		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		yawPanel = new JPanel();
 		yawPanel.setLayout(new BoxLayout(yawPanel, BoxLayout.Y_AXIS));
 		JLabel yawLabel = new JLabel("Yaw");
@@ -318,8 +321,10 @@ public class BridgeMain {
 		yawField.setHorizontalAlignment(JTextField.CENTER);
 		yawField.setEditable(false);
 		yawField.setBackground(DISABLED_COLOR);
+		yawField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
 		yawPanel.add(yawField);
 		angleVisualizerPanel.add(yawPanel);
+		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
 		pitchPanel = new JPanel();
 		pitchPanel.setLayout(new BoxLayout(pitchPanel, BoxLayout.Y_AXIS));
@@ -335,8 +340,10 @@ public class BridgeMain {
 		pitchField.setHorizontalAlignment(JTextField.CENTER);
 		pitchField.setEditable(false);
 		pitchField.setBackground(DISABLED_COLOR);
+		pitchField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
 		pitchPanel.add(pitchField);
 		angleVisualizerPanel.add(pitchPanel);
+		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
 		rollPanel = new JPanel();
 		rollPanel.setLayout(new BoxLayout(rollPanel, BoxLayout.Y_AXIS));
@@ -352,8 +359,10 @@ public class BridgeMain {
 		rollField.setHorizontalAlignment(JTextField.CENTER);
 		rollField.setEditable(false);
 		rollField.setBackground(DISABLED_COLOR);
+		rollField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
 		rollPanel.add(rollField);
 		angleVisualizerPanel.add(rollPanel);
+		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
 		mainFrame.add(angleVisualizerPanel);
 		mainFrame.pack();
@@ -409,8 +418,11 @@ public class BridgeMain {
 			}
 			
 			lastOnArm = onArm;
-			topBarPanel.revalidate();
 			topBarPanel.repaint();
+		}
+		
+		if(!onArm) {
+			return;
 		}
 		
 		if(orientation.getYawDegrees() != yawVisualizer.getAngle()) {
@@ -492,11 +504,9 @@ public class BridgeMain {
 			myo.runHub(100);
 			
 			boolean onArm = myo.isOnArm();
-			if(onArm) {
-				SwingUtilities.invokeLater(() -> {				
-					updateUI(onArm, invertAngles ? myo.getOrientation().negate() : myo.getOrientation());
-				});
-			}
+			SwingUtilities.invokeLater(() -> {				
+				updateUI(onArm, invertAngles ? myo.getOrientation().negate() : myo.getOrientation());
+			});
 		}
 	}
 
