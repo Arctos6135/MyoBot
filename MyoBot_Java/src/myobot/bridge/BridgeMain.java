@@ -293,404 +293,408 @@ public class BridgeMain {
 		loadingDialog.setLocationRelativeTo(null);
 		loadingDialog.setVisible(true);
 		
-		//TODO Mark1
 		SwingWorker<Void, Void> uiWorker = new SwingWorker<Void, Void>() {
 			
 			@Override
 			protected Void doInBackground() throws Exception {
 				loadImages();
-				
-				mainFrame = new JFrame("MyoBot Control Center");
-				mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-				mainFrame.setLayout(new GridBagLayout());
-				
-				//"Connecting to Myo" Dialog
-				connectingDialog = new JDialog(mainFrame, "Please Wait...");
-				connectingDialog.setModal(true);
-				connectingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-				JPanel connectingDialogPanel = new JPanel();
-				connectingDialogPanel.setBorder(BorderFactory.createLineBorder(new Color(10, 10, 10), 1, true));
-				connectingDialogPanel.setLayout(new BorderLayout());
-				JLabel l = new JLabel("Connecting to Myo...");
-				l.setFont(l.getFont().deriveFont(18.0f));
-				l.setHorizontalAlignment(JLabel.CENTER);
-				l.setVerticalAlignment(JLabel.CENTER);
-				//Create an empty border around the label
-				l.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
-				connectingDialogPanel.add(l, BorderLayout.CENTER);
-		
-				JProgressBar connectionProgress = new JProgressBar();
-				connectionProgress.setPreferredSize(new Dimension(350, 30));
-				connectionProgress.setIndeterminate(true);
-				//The progress bar has its own panel, because directly adding a border to it doesn't work
-				JPanel progressBarPanel = new JPanel();
-				progressBarPanel.add(connectionProgress);
-				progressBarPanel.setBorder(BorderFactory.createEmptyBorder(0, 25, 20, 25));
-				connectingDialogPanel.add(progressBarPanel, BorderLayout.PAGE_END);
-				connectingDialog.setContentPane(connectingDialogPanel);
-				connectingDialog.setUndecorated(true);
-				connectingDialog.pack();
-				//Center the dialog
-				connectingDialog.setLocationRelativeTo(null);
-				
-				//Top bar with the icons and buttons
-				mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
-				topBarPanel = new JPanel();
-				//Construct ImageIcons
-				unlockStatusIcon = new ImageIcon(imgLocked);
-				onArmStatusIcon = new ImageIcon(imgOffArm);
-				invertStatusIcon = new ImageIcon(invertAngles ? imgInverted : imgNonInverted);
-				topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 5));
-				//Store these lambdas as runnables
-				//Reused later
-				Runnable lockUnlockMyo = () -> {
-					if(myo.isLocked()) {
-						myo.unlock();
-						myoIsUnlocked = true;
-						lockUnlockButton.setText("Lock");
-						unlockStatusIcon.setImage(imgUnlocked);
-						unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
-					}
-					else {
-						myo.lock();
-						myoIsUnlocked = false;
-						lockUnlockButton.setText("Unlock");
-						unlockStatusIcon.setImage(imgLocked);
-						unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
-					}
-					topBarPanel.revalidate();
-					topBarPanel.repaint();
-				};
-				Runnable invertUninvertAngles = () -> {
-					invertAngles = !invertAngles;
-					invertStatusIcon.setImage(invertAngles ? imgInverted : imgNonInverted);
-					invertStatusLabel.setToolTipText(invertAngles ? TOOLTIP_INVERTED : TOOLTIP_NORMAL);
-					
-					topBarPanel.revalidate();
-					topBarPanel.repaint();
-				};
-				
-				//Add our ImageIcons to the top bar
-				unlockStatusLabel = new JLabel(unlockStatusIcon);
-				unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
-				//Make them clickable
-				unlockStatusLabel.addMouseListener(new MouseAdapter() {
-					@Override
-					public void mouseClicked(MouseEvent e) {
-						lockUnlockMyo.run();
-					}
-				});
-				topBarPanel.add(unlockStatusLabel);
-				onArmStatusLabel = new JLabel(onArmStatusIcon);
-				onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
-				topBarPanel.add(onArmStatusLabel);
-				invertStatusLabel = new JLabel(invertStatusIcon);
-				invertStatusLabel.setToolTipText(TOOLTIP_NORMAL);
-				invertStatusLabel.addMouseListener(new MouseAdapter() {
-					@Override
-					public void mouseClicked(MouseEvent e) {
-						invertUninvertAngles.run();
-					}
-				});
-				topBarPanel.add(invertStatusLabel);
-				
-				//Buttons have their own sub-panel so they can have different gaps
-				JPanel topButtonsPanel = new JPanel();
-				lockUnlockButton = new JButton();
-				lockUnlockButton.setPreferredSize(BUTTON_SIZE);
-				@SuppressWarnings("serial")
-				Action lockUnlockMyoAction = new AbstractAction("Unlock") {
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						lockUnlockMyo.run();
-					}
-				};
-				lockUnlockButton.setAction(lockUnlockMyoAction);
-				lockUnlockMyoAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_L);
-				
-				invertButton = new JButton();
-				invertButton.setPreferredSize(BUTTON_SIZE);
-				@SuppressWarnings("serial")
-				Action invertAction = new AbstractAction("Invert") {
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						invertUninvertAngles.run();
-					}
-				};
-				invertButton.setAction(invertAction);
-				invertAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_I);
-				
-				updateRefButton = new JButton();
-				@SuppressWarnings("serial")
-				Action updateRefAction = new AbstractAction("Reset Orientation") {
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						myo.updateReferenceOrientation();
-					}
-				};
-				updateRefButton.setAction(updateRefAction);
-				updateRefAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
-				
-				topButtonsPanel.add(lockUnlockButton);
-				topButtonsPanel.add(invertButton);
-				topButtonsPanel.add(updateRefButton);
-				topBarPanel.add(topButtonsPanel);
-				GridBagConstraints c = new GridBagConstraints();
-				c.gridx = 0;
-				c.gridy = 0;
-				c.fill = GridBagConstraints.BOTH;
-				c.weightx = 1.0;
-				c.weighty = 0.5;
-				mainFrame.add(topBarPanel, c);
-				
-				JPanel middleRow = new JPanel();
-				middleRow.setLayout(new GridBagLayout());
-				//The panel with the orientation
-				angleVisualizerPanel = new JPanel();
-				angleVisualizerPanel.setLayout(new BoxLayout(angleVisualizerPanel, BoxLayout.X_AXIS));
-				angleVisualizerPanel.setBorder(BorderFactory.createTitledBorder("Orientation"));
-				
-				angleVisualizerPanel.add(Box.createHorizontalGlue());
-				yawPanel = makeDisplayModule1("Yaw", yawVisualizer = new AngleVisualizer(GYRO_SIZE), yawField = new JTextField());
-				angleVisualizerPanel.add(yawPanel);
-				angleVisualizerPanel.add(Box.createHorizontalGlue());
-				pitchPanel = makeDisplayModule1("Pitch", pitchVisualizer = new AngleVisualizer(GYRO_SIZE), pitchField = new JTextField());
-				angleVisualizerPanel.add(pitchPanel);
-				angleVisualizerPanel.add(Box.createHorizontalGlue());
-				rollPanel = makeDisplayModule1("Roll", rollVisualizer = new AngleVisualizer(GYRO_SIZE), rollField = new JTextField());
-				angleVisualizerPanel.add(rollPanel);
-				angleVisualizerPanel.add(Box.createHorizontalGlue());
-				
-				GridBagConstraints constraints = new GridBagConstraints();
-				constraints.gridx = 0;
-				constraints.gridy = 0;
-				constraints.weightx = 1.0;
-				constraints.fill = GridBagConstraints.BOTH;
-				middleRow.add(angleVisualizerPanel, constraints);
-				
-				//Pose section
-				posePanel = new JPanel();
-				posePanel.setLayout(new BoxLayout(posePanel, BoxLayout.Y_AXIS));
-				posePanel.setBorder(BorderFactory.createTitledBorder("Current Pose"));
-				poseIcon = new ImageIcon(imgNoPose);
-				poseLabel = new JLabel(poseIcon);
-				poseLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-				posePanel.add(poseLabel);
-				poseNameLabel = new JLabel("Rest/Unknown");
-				posePanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-				poseNameLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-				poseNameLabel.setHorizontalAlignment(JLabel.CENTER);
-				posePanel.add(poseNameLabel);
-				
-				constraints.gridx = 1;
-				constraints.gridy = 0;
-				constraints.weightx = 0.5;
-				constraints.fill = GridBagConstraints.BOTH;
-				middleRow.add(posePanel, constraints);
-				c = new GridBagConstraints();
-				c.gridx = 0;
-				c.gridy = 1;
-				c.fill = GridBagConstraints.BOTH;
-				c.weightx = 1.0;
-				c.weighty = 1.0;
-				mainFrame.add(middleRow, c);
-				
-				//Speedometers
-				speedometerPanel = new JPanel();
-				//speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
-				speedometerPanel.setLayout(new GridBagLayout());
-				
-				driveSpeedPanel = new JPanel();
-				driveSpeedPanel.setBorder(BorderFactory.createTitledBorder("Drive Status"));
-				driveSpeedPanel.setLayout(new BoxLayout(driveSpeedPanel, BoxLayout.X_AXIS));
-				driveSpeedPanel.add(Box.createHorizontalGlue());
-				
-				leftMotorPanel = makeDisplayModule1("Left Motor", leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
-				driveSpeedPanel.add(leftMotorPanel);
-				driveSpeedPanel.add(Box.createHorizontalGlue());
-				rightMotorPanel = makeDisplayModule1("Right Motor", rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), rightMotorField = new JTextField());
-				driveSpeedPanel.add(rightMotorPanel);
-				driveSpeedPanel.add(Box.createHorizontalGlue());
-				
-				driveDirectionIcon = new ImageIcon(imgNoMovement);
-				driveDirectionLabel = new JLabel(driveDirectionIcon);
-				driveDirectionLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-				driveDirectionLabel.setHorizontalAlignment(JLabel.CENTER);
-				driveDirectionLabel.setToolTipText("Drive Direction");
-				driveSpeedPanel.add(driveDirectionLabel);
-				driveSpeedPanel.add(Box.createHorizontalGlue());
-				
-				constraints.gridx = 0;
-				constraints.gridy = 0;
-				constraints.fill = GridBagConstraints.BOTH;
-				constraints.weightx = 1.0;
-				speedometerPanel.add(driveSpeedPanel, constraints);
-				
-				attachmentsPanel = new JPanel();
-				attachmentsPanel.setBorder(BorderFactory.createTitledBorder("Attachments Status"));
-				attachmentsPanel.setLayout(new BoxLayout(attachmentsPanel, BoxLayout.X_AXIS));
-				attachmentsPanel.add(Box.createHorizontalGlue());
-				
-				elevatorSpeedPanel = makeDisplayModule1("Elevator", elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), elevatorSpeedField = new JTextField());
-				attachmentsPanel.add(elevatorSpeedPanel);
-				attachmentsPanel.add(Box.createHorizontalGlue());
-				intakeSpeedPanel = makeDisplayModule1("Intake", intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE), intakeSpeedField = new JTextField());
-				attachmentsPanel.add(intakeSpeedPanel);
-				attachmentsPanel.add(Box.createHorizontalGlue());
-				
-				constraints.gridx = 1;
-				constraints.gridy = 0;
-				constraints.fill = GridBagConstraints.BOTH;
-				constraints.weightx = 0.67;
-				speedometerPanel.add(attachmentsPanel, constraints);
-				
-				c = new GridBagConstraints();
-				c.gridx = 0;
-				c.gridy = 2;
-				c.fill = GridBagConstraints.BOTH;
-				c.weightx = 1.0;
-				c.weighty = 0.8;
-				mainFrame.add(speedometerPanel, c);
-				
-				maxSpeedPanel = new JPanel();
-				maxSpeedPanel.setLayout(new BoxLayout(maxSpeedPanel, BoxLayout.LINE_AXIS));
-				maxSpeedPanel.setBorder(BorderFactory.createTitledBorder("Maximum Speeds"));
-				maxSpeedPanel.add(Box.createHorizontalGlue());
-				
-				maxDriveSpeedSlider = new JSlider(0, 100, (int) (driveMaxSpeed * 100));
-				maxDriveSpeedSlider.setMajorTickSpacing(25);
-				maxDriveSpeedSlider.setMinorTickSpacing(5);
-				maxDriveSpeedSlider.setPaintTicks(true);
-				Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
-				labelTable.put(0, new JLabel("0"));
-				labelTable.put(25, new JLabel("0.25"));
-				labelTable.put(50, new JLabel("0.5"));
-				labelTable.put(75, new JLabel("0.75"));
-				labelTable.put(100, new JLabel("1"));
-				maxDriveSpeedSlider.setLabelTable(labelTable);
-				maxDriveSpeedSlider.setPaintLabels(true);
-				maxDriveSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
-				maxDriveSpeedSlider.addChangeListener(e -> {
-					JSlider source = (JSlider) e.getSource();
-					driveMaxSpeed = source.getValue() / 100.0;
-					String speed = String.valueOf(driveMaxSpeed);
-					if(!(speed.equals("1") || speed.equals("0")) &&
-							speed.substring(2).length() < 2) {
-						speed += "0";
-					}
-					maxDriveSpeedField.setText(speed);
-				});
-				maxDriveSpeedPanel = makeDisplayModule1("Drive", maxDriveSpeedSlider, maxDriveSpeedField = new JTextField());
-				maxDriveSpeedField.setText(String.valueOf(roundToPlaces(driveMaxSpeed, 2)));
-				maxSpeedPanel.add(maxDriveSpeedPanel);
-				maxSpeedPanel.add(Box.createHorizontalGlue());
-				
-				maxElevatorSpeedSlider = new JSlider(0, 100, (int) (elevatorMaxSpeed * 100));
-				maxElevatorSpeedSlider.setMajorTickSpacing(25);
-				maxElevatorSpeedSlider.setMinorTickSpacing(5);
-				maxElevatorSpeedSlider.setPaintTicks(true);
-				maxElevatorSpeedSlider.setLabelTable(labelTable);
-				maxElevatorSpeedSlider.setPaintLabels(true);
-				maxElevatorSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
-				maxElevatorSpeedSlider.addChangeListener(e -> {
-					JSlider source = (JSlider) e.getSource();
-					elevatorMaxSpeed = source.getValue() / 100.0;
-					String speed = String.valueOf(elevatorMaxSpeed);
-					if(!(speed.equals("1") || speed.equals("0")) &&
-							speed.substring(2).length() < 2) {
-						speed += "0";
-					}
-					maxElevatorSpeedField.setText(speed);
-				});
-				maxElevatorSpeedPanel = makeDisplayModule1("Elevator", maxElevatorSpeedSlider, maxElevatorSpeedField = new JTextField());
-				maxElevatorSpeedField.setText(String.valueOf(roundToPlaces(elevatorMaxSpeed, 2)));
-				maxSpeedPanel.add(maxElevatorSpeedPanel);
-				maxSpeedPanel.add(Box.createHorizontalGlue());
-				
-				maxIntakeSpeedSlider = new JSlider(0, 100, (int) (intakeMaxSpeed * 100));
-				maxIntakeSpeedSlider.setMajorTickSpacing(25);
-				maxIntakeSpeedSlider.setMinorTickSpacing(5);
-				maxIntakeSpeedSlider.setPaintTicks(true);
-				maxIntakeSpeedSlider.setLabelTable(labelTable);
-				maxIntakeSpeedSlider.setPaintLabels(true);
-				maxIntakeSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
-				maxIntakeSpeedSlider.addChangeListener(e -> {
-					JSlider source = (JSlider) e.getSource();
-					intakeMaxSpeed = source.getValue() / 100.0;
-					String speed = String.valueOf(intakeMaxSpeed);
-					if(!(speed.equals("1") || speed.equals("0")) &&
-							speed.substring(2).length() < 2) {
-						speed += "0";
-					}
-					maxIntakeSpeedField.setText(speed);
-				});
-				maxIntakeSpeedPanel = makeDisplayModule1("Intake", maxIntakeSpeedSlider, maxIntakeSpeedField = new JTextField());
-				maxIntakeSpeedField.setText(String.valueOf(roundToPlaces(intakeMaxSpeed, 2)));
-				maxSpeedPanel.add(maxIntakeSpeedPanel);
-				maxSpeedPanel.add(Box.createHorizontalGlue());
-				
-				c = new GridBagConstraints();
-				c.gridx = 0;
-				c.gridy = 3;
-				c.fill = GridBagConstraints.BOTH;
-				c.weightx = 1.0;
-				c.weighty = 0.8;
-				mainFrame.add(maxSpeedPanel, c);
-				
-				mainFrame.pack();
-				mainFrame.setSize(800, mainFrame.getSize().height);
-				fixSize(yawField);
-				fixSize(pitchField);
-				fixSize(rollField);
-				fixSize(leftMotorField);
-				fixSize(rightMotorField);
-				fixSize(elevatorSpeedField);
-				fixSize(intakeSpeedField);
-				fixSize(maxDriveSpeedField);
-				fixSize(maxElevatorSpeedField);
-				fixSize(maxIntakeSpeedField);
-		
-				//Initialize prompt for team number
-				promptPanel = new JPanel();
-				promptPanel.setLayout(new BorderLayout());
-				promptPanel.add(new JLabel("Enter FRC Team Number, or 0 for Dry-Run:"), BorderLayout.CENTER);
-				teamNumber = new JTextField();
-				promptPanel.add(teamNumber, BorderLayout.PAGE_END);
-				//Initialize NT
-				ntInstance = NetworkTableInstance.getDefault();
-				ntTable = ntInstance.getTable("myobot");
-				ntDriveLeft = ntTable.getEntry("leftDrive");
-				ntDriveRight = ntTable.getEntry("rightDrive");
-				ntElevator = ntTable.getEntry("elevator");
-				ntIntake = ntTable.getEntry("intake");
-				
 				return null;
 			}
 			
 			protected void done() {
-				loadingDialog.setVisible(false);
-				loadingDialog.dispose();
-				mainFrame.setVisible(true);
-				
-				boolean done = false;
-				while(!done) {
-					JOptionPane.showMessageDialog(mainFrame, promptPanel, "Enter Team Number", JOptionPane.PLAIN_MESSAGE);
-					try {
-						int team = Integer.parseInt(teamNumber.getText());
-						if(team != 0) {
-							ntInstance.setUpdateRate(1.0 / 15);
-							ntInstance.startClientTeam(team);
-							ntInstance.startDSClient();
+				try {
+					mainFrame = new JFrame("MyoBot Control Center");
+					mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					mainFrame.setLayout(new GridBagLayout());
+					
+					//"Connecting to Myo" Dialog
+					connectingDialog = new JDialog(mainFrame, "Please Wait...");
+					connectingDialog.setModal(true);
+					connectingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+					JPanel connectingDialogPanel = new JPanel();
+					connectingDialogPanel.setBorder(BorderFactory.createLineBorder(new Color(10, 10, 10), 1, true));
+					connectingDialogPanel.setLayout(new BorderLayout());
+					JLabel l = new JLabel("Connecting to Myo...");
+					l.setFont(l.getFont().deriveFont(18.0f));
+					l.setHorizontalAlignment(JLabel.CENTER);
+					l.setVerticalAlignment(JLabel.CENTER);
+					//Create an empty border around the label
+					l.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
+					connectingDialogPanel.add(l, BorderLayout.CENTER);
+			
+					JProgressBar connectionProgress = new JProgressBar();
+					connectionProgress.setPreferredSize(new Dimension(350, 30));
+					connectionProgress.setIndeterminate(true);
+					//The progress bar has its own panel, because directly adding a border to it doesn't work
+					JPanel progressBarPanel = new JPanel();
+					progressBarPanel.add(connectionProgress);
+					progressBarPanel.setBorder(BorderFactory.createEmptyBorder(0, 25, 20, 25));
+					connectingDialogPanel.add(progressBarPanel, BorderLayout.PAGE_END);
+					connectingDialog.setContentPane(connectingDialogPanel);
+					connectingDialog.setUndecorated(true);
+					connectingDialog.pack();
+					//Center the dialog
+					connectingDialog.setLocationRelativeTo(null);
+					
+					//Top bar with the icons and buttons
+					mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
+					topBarPanel = new JPanel();
+					//Construct ImageIcons
+					unlockStatusIcon = new ImageIcon(imgLocked);
+					onArmStatusIcon = new ImageIcon(imgOffArm);
+					invertStatusIcon = new ImageIcon(invertAngles ? imgInverted : imgNonInverted);
+					topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 5));
+					//Store these lambdas as runnables
+					//Reused later
+					Runnable lockUnlockMyo = () -> {
+						if(myo.isLocked()) {
+							myo.unlock();
+							myoIsUnlocked = true;
+							lockUnlockButton.setText("Lock");
+							unlockStatusIcon.setImage(imgUnlocked);
+							unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
 						}
-						done = true;
+						else {
+							myo.lock();
+							myoIsUnlocked = false;
+							lockUnlockButton.setText("Unlock");
+							unlockStatusIcon.setImage(imgLocked);
+							unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
+						}
+						topBarPanel.revalidate();
+						topBarPanel.repaint();
+					};
+					Runnable invertUninvertAngles = () -> {
+						invertAngles = !invertAngles;
+						invertStatusIcon.setImage(invertAngles ? imgInverted : imgNonInverted);
+						invertStatusLabel.setToolTipText(invertAngles ? TOOLTIP_INVERTED : TOOLTIP_NORMAL);
+						
+						topBarPanel.revalidate();
+						topBarPanel.repaint();
+					};
+					
+					//Add our ImageIcons to the top bar
+					unlockStatusLabel = new JLabel(unlockStatusIcon);
+					unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
+					//Make them clickable
+					unlockStatusLabel.addMouseListener(new MouseAdapter() {
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							lockUnlockMyo.run();
+						}
+					});
+					topBarPanel.add(unlockStatusLabel);
+					onArmStatusLabel = new JLabel(onArmStatusIcon);
+					onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
+					topBarPanel.add(onArmStatusLabel);
+					invertStatusLabel = new JLabel(invertStatusIcon);
+					invertStatusLabel.setToolTipText(TOOLTIP_NORMAL);
+					invertStatusLabel.addMouseListener(new MouseAdapter() {
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							invertUninvertAngles.run();
+						}
+					});
+					topBarPanel.add(invertStatusLabel);
+					
+					//Buttons have their own sub-panel so they can have different gaps
+					JPanel topButtonsPanel = new JPanel();
+					lockUnlockButton = new JButton();
+					lockUnlockButton.setPreferredSize(BUTTON_SIZE);
+					@SuppressWarnings("serial")
+					Action lockUnlockMyoAction = new AbstractAction("Unlock") {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							lockUnlockMyo.run();
+						}
+					};
+					lockUnlockButton.setAction(lockUnlockMyoAction);
+					lockUnlockMyoAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_L);
+					
+					invertButton = new JButton();
+					invertButton.setPreferredSize(BUTTON_SIZE);
+					@SuppressWarnings("serial")
+					Action invertAction = new AbstractAction("Invert") {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							invertUninvertAngles.run();
+						}
+					};
+					invertButton.setAction(invertAction);
+					invertAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_I);
+					
+					updateRefButton = new JButton();
+					@SuppressWarnings("serial")
+					Action updateRefAction = new AbstractAction("Reset Orientation") {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							myo.updateReferenceOrientation();
+						}
+					};
+					updateRefButton.setAction(updateRefAction);
+					updateRefAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
+					
+					topButtonsPanel.add(lockUnlockButton);
+					topButtonsPanel.add(invertButton);
+					topButtonsPanel.add(updateRefButton);
+					topBarPanel.add(topButtonsPanel);
+					GridBagConstraints c = new GridBagConstraints();
+					c.gridx = 0;
+					c.gridy = 0;
+					c.fill = GridBagConstraints.BOTH;
+					c.weightx = 1.0;
+					c.weighty = 0.5;
+					mainFrame.add(topBarPanel, c);
+					
+					JPanel middleRow = new JPanel();
+					middleRow.setLayout(new GridBagLayout());
+					//The panel with the orientation
+					angleVisualizerPanel = new JPanel();
+					angleVisualizerPanel.setLayout(new BoxLayout(angleVisualizerPanel, BoxLayout.X_AXIS));
+					angleVisualizerPanel.setBorder(BorderFactory.createTitledBorder("Orientation"));
+					
+					angleVisualizerPanel.add(Box.createHorizontalGlue());
+					yawPanel = makeDisplayModule1("Yaw", yawVisualizer = new AngleVisualizer(GYRO_SIZE), yawField = new JTextField());
+					angleVisualizerPanel.add(yawPanel);
+					angleVisualizerPanel.add(Box.createHorizontalGlue());
+					pitchPanel = makeDisplayModule1("Pitch", pitchVisualizer = new AngleVisualizer(GYRO_SIZE), pitchField = new JTextField());
+					angleVisualizerPanel.add(pitchPanel);
+					angleVisualizerPanel.add(Box.createHorizontalGlue());
+					rollPanel = makeDisplayModule1("Roll", rollVisualizer = new AngleVisualizer(GYRO_SIZE), rollField = new JTextField());
+					angleVisualizerPanel.add(rollPanel);
+					angleVisualizerPanel.add(Box.createHorizontalGlue());
+					
+					GridBagConstraints constraints = new GridBagConstraints();
+					constraints.gridx = 0;
+					constraints.gridy = 0;
+					constraints.weightx = 1.0;
+					constraints.fill = GridBagConstraints.BOTH;
+					middleRow.add(angleVisualizerPanel, constraints);
+					
+					//Pose section
+					posePanel = new JPanel();
+					posePanel.setLayout(new BoxLayout(posePanel, BoxLayout.Y_AXIS));
+					posePanel.setBorder(BorderFactory.createTitledBorder("Current Pose"));
+					poseIcon = new ImageIcon(imgNoPose);
+					poseLabel = new JLabel(poseIcon);
+					poseLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+					posePanel.add(poseLabel);
+					poseNameLabel = new JLabel("Rest/Unknown");
+					posePanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+					poseNameLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+					poseNameLabel.setHorizontalAlignment(JLabel.CENTER);
+					posePanel.add(poseNameLabel);
+					
+					constraints.gridx = 1;
+					constraints.gridy = 0;
+					constraints.weightx = 0.5;
+					constraints.fill = GridBagConstraints.BOTH;
+					middleRow.add(posePanel, constraints);
+					c = new GridBagConstraints();
+					c.gridx = 0;
+					c.gridy = 1;
+					c.fill = GridBagConstraints.BOTH;
+					c.weightx = 1.0;
+					c.weighty = 1.0;
+					mainFrame.add(middleRow, c);
+					
+					//Speedometers
+					speedometerPanel = new JPanel();
+					//speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
+					speedometerPanel.setLayout(new GridBagLayout());
+					
+					driveSpeedPanel = new JPanel();
+					driveSpeedPanel.setBorder(BorderFactory.createTitledBorder("Drive Status"));
+					driveSpeedPanel.setLayout(new BoxLayout(driveSpeedPanel, BoxLayout.X_AXIS));
+					driveSpeedPanel.add(Box.createHorizontalGlue());
+					
+					leftMotorPanel = makeDisplayModule1("Left Motor", leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
+					driveSpeedPanel.add(leftMotorPanel);
+					driveSpeedPanel.add(Box.createHorizontalGlue());
+					rightMotorPanel = makeDisplayModule1("Right Motor", rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), rightMotorField = new JTextField());
+					driveSpeedPanel.add(rightMotorPanel);
+					driveSpeedPanel.add(Box.createHorizontalGlue());
+					
+					driveDirectionIcon = new ImageIcon(imgNoMovement);
+					driveDirectionLabel = new JLabel(driveDirectionIcon);
+					driveDirectionLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+					driveDirectionLabel.setHorizontalAlignment(JLabel.CENTER);
+					driveDirectionLabel.setToolTipText("Drive Direction");
+					driveSpeedPanel.add(driveDirectionLabel);
+					driveSpeedPanel.add(Box.createHorizontalGlue());
+					
+					constraints.gridx = 0;
+					constraints.gridy = 0;
+					constraints.fill = GridBagConstraints.BOTH;
+					constraints.weightx = 1.0;
+					speedometerPanel.add(driveSpeedPanel, constraints);
+					
+					attachmentsPanel = new JPanel();
+					attachmentsPanel.setBorder(BorderFactory.createTitledBorder("Attachments Status"));
+					attachmentsPanel.setLayout(new BoxLayout(attachmentsPanel, BoxLayout.X_AXIS));
+					attachmentsPanel.add(Box.createHorizontalGlue());
+					
+					elevatorSpeedPanel = makeDisplayModule1("Elevator", elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), elevatorSpeedField = new JTextField());
+					attachmentsPanel.add(elevatorSpeedPanel);
+					attachmentsPanel.add(Box.createHorizontalGlue());
+					intakeSpeedPanel = makeDisplayModule1("Intake", intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE), intakeSpeedField = new JTextField());
+					attachmentsPanel.add(intakeSpeedPanel);
+					attachmentsPanel.add(Box.createHorizontalGlue());
+					
+					constraints.gridx = 1;
+					constraints.gridy = 0;
+					constraints.fill = GridBagConstraints.BOTH;
+					constraints.weightx = 0.67;
+					speedometerPanel.add(attachmentsPanel, constraints);
+					
+					c = new GridBagConstraints();
+					c.gridx = 0;
+					c.gridy = 2;
+					c.fill = GridBagConstraints.BOTH;
+					c.weightx = 1.0;
+					c.weighty = 0.8;
+					mainFrame.add(speedometerPanel, c);
+					
+					maxSpeedPanel = new JPanel();
+					maxSpeedPanel.setLayout(new BoxLayout(maxSpeedPanel, BoxLayout.LINE_AXIS));
+					maxSpeedPanel.setBorder(BorderFactory.createTitledBorder("Maximum Speeds"));
+					maxSpeedPanel.add(Box.createHorizontalGlue());
+					
+					maxDriveSpeedSlider = new JSlider(0, 100, (int) (driveMaxSpeed * 100));
+					maxDriveSpeedSlider.setMajorTickSpacing(25);
+					maxDriveSpeedSlider.setMinorTickSpacing(5);
+					maxDriveSpeedSlider.setPaintTicks(true);
+					Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+					labelTable.put(0, new JLabel("0"));
+					labelTable.put(25, new JLabel("0.25"));
+					labelTable.put(50, new JLabel("0.5"));
+					labelTable.put(75, new JLabel("0.75"));
+					labelTable.put(100, new JLabel("1"));
+					maxDriveSpeedSlider.setLabelTable(labelTable);
+					maxDriveSpeedSlider.setPaintLabels(true);
+					maxDriveSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
+					maxDriveSpeedSlider.addChangeListener(e -> {
+						JSlider source = (JSlider) e.getSource();
+						driveMaxSpeed = source.getValue() / 100.0;
+						String speed = String.valueOf(driveMaxSpeed);
+						if(!(speed.equals("1") || speed.equals("0")) &&
+								speed.substring(2).length() < 2) {
+							speed += "0";
+						}
+						maxDriveSpeedField.setText(speed);
+					});
+					maxDriveSpeedPanel = makeDisplayModule1("Drive", maxDriveSpeedSlider, maxDriveSpeedField = new JTextField());
+					maxDriveSpeedField.setText(String.valueOf(roundToPlaces(driveMaxSpeed, 2)));
+					maxSpeedPanel.add(maxDriveSpeedPanel);
+					maxSpeedPanel.add(Box.createHorizontalGlue());
+					
+					maxElevatorSpeedSlider = new JSlider(0, 100, (int) (elevatorMaxSpeed * 100));
+					maxElevatorSpeedSlider.setMajorTickSpacing(25);
+					maxElevatorSpeedSlider.setMinorTickSpacing(5);
+					maxElevatorSpeedSlider.setPaintTicks(true);
+					maxElevatorSpeedSlider.setLabelTable(labelTable);
+					maxElevatorSpeedSlider.setPaintLabels(true);
+					maxElevatorSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
+					maxElevatorSpeedSlider.addChangeListener(e -> {
+						JSlider source = (JSlider) e.getSource();
+						elevatorMaxSpeed = source.getValue() / 100.0;
+						String speed = String.valueOf(elevatorMaxSpeed);
+						if(!(speed.equals("1") || speed.equals("0")) &&
+								speed.substring(2).length() < 2) {
+							speed += "0";
+						}
+						maxElevatorSpeedField.setText(speed);
+					});
+					maxElevatorSpeedPanel = makeDisplayModule1("Elevator", maxElevatorSpeedSlider, maxElevatorSpeedField = new JTextField());
+					maxElevatorSpeedField.setText(String.valueOf(roundToPlaces(elevatorMaxSpeed, 2)));
+					maxSpeedPanel.add(maxElevatorSpeedPanel);
+					maxSpeedPanel.add(Box.createHorizontalGlue());
+					
+					maxIntakeSpeedSlider = new JSlider(0, 100, (int) (intakeMaxSpeed * 100));
+					maxIntakeSpeedSlider.setMajorTickSpacing(25);
+					maxIntakeSpeedSlider.setMinorTickSpacing(5);
+					maxIntakeSpeedSlider.setPaintTicks(true);
+					maxIntakeSpeedSlider.setLabelTable(labelTable);
+					maxIntakeSpeedSlider.setPaintLabels(true);
+					maxIntakeSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
+					maxIntakeSpeedSlider.addChangeListener(e -> {
+						JSlider source = (JSlider) e.getSource();
+						intakeMaxSpeed = source.getValue() / 100.0;
+						String speed = String.valueOf(intakeMaxSpeed);
+						if(!(speed.equals("1") || speed.equals("0")) &&
+								speed.substring(2).length() < 2) {
+							speed += "0";
+						}
+						maxIntakeSpeedField.setText(speed);
+					});
+					maxIntakeSpeedPanel = makeDisplayModule1("Intake", maxIntakeSpeedSlider, maxIntakeSpeedField = new JTextField());
+					maxIntakeSpeedField.setText(String.valueOf(roundToPlaces(intakeMaxSpeed, 2)));
+					maxSpeedPanel.add(maxIntakeSpeedPanel);
+					maxSpeedPanel.add(Box.createHorizontalGlue());
+					
+					c = new GridBagConstraints();
+					c.gridx = 0;
+					c.gridy = 3;
+					c.fill = GridBagConstraints.BOTH;
+					c.weightx = 1.0;
+					c.weighty = 0.8;
+					mainFrame.add(maxSpeedPanel, c);
+					
+					mainFrame.pack();
+					mainFrame.setSize(800, mainFrame.getSize().height);
+					fixSize(yawField);
+					fixSize(pitchField);
+					fixSize(rollField);
+					fixSize(leftMotorField);
+					fixSize(rightMotorField);
+					fixSize(elevatorSpeedField);
+					fixSize(intakeSpeedField);
+					fixSize(maxDriveSpeedField);
+					fixSize(maxElevatorSpeedField);
+					fixSize(maxIntakeSpeedField);
+			
+					//Initialize prompt for team number
+					promptPanel = new JPanel();
+					promptPanel.setLayout(new BorderLayout());
+					promptPanel.add(new JLabel("Enter FRC Team Number, or 0 for Dry-Run:"), BorderLayout.CENTER);
+					teamNumber = new JTextField();
+					promptPanel.add(teamNumber, BorderLayout.PAGE_END);
+					//Initialize NT
+					ntInstance = NetworkTableInstance.getDefault();
+					ntTable = ntInstance.getTable("myobot");
+					ntDriveLeft = ntTable.getEntry("leftDrive");
+					ntDriveRight = ntTable.getEntry("rightDrive");
+					ntElevator = ntTable.getEntry("elevator");
+					ntIntake = ntTable.getEntry("intake");
+					
+					loadingDialog.setVisible(false);
+					loadingDialog.dispose();
+					mainFrame.setVisible(true);
+					
+					boolean done = false;
+					while(!done) {
+						JOptionPane.showMessageDialog(mainFrame, promptPanel, "Enter Team Number", JOptionPane.PLAIN_MESSAGE);
+						try {
+							int team = Integer.parseInt(teamNumber.getText());
+							if(team != 0) {
+								ntInstance.setUpdateRate(1.0 / 15);
+								ntInstance.startClientTeam(team);
+								ntInstance.startDSClient();
+							}
+							done = true;
+						}
+						catch(NumberFormatException nfe) {
+							JOptionPane.showMessageDialog(mainFrame, "Please enter a valid team number.", "Error", JOptionPane.ERROR_MESSAGE);
+						}
 					}
-					catch(NumberFormatException nfe) {
-						JOptionPane.showMessageDialog(mainFrame, "Please enter a valid team number.", "Error", JOptionPane.ERROR_MESSAGE);
-					}
+					
+					uiIsSetUp = true;
+					connectingDialog.setVisible(true);
 				}
-				
-				uiIsSetUp = true;
-				connectingDialog.setVisible(true);
+				catch(IOException e) {
+					e.printStackTrace();
+					System.exit(1);
+				}
 			}
 		};
 		uiWorker.execute();
