@@ -48,7 +48,6 @@ import myobot.bridge.myo.Myo;
 import myobot.bridge.myo.MyoException;
 import myobot.bridge.ui.AngleVisualizer;
 import myobot.bridge.ui.Speedometer;
-import sun.font.CreatedFontTracker;
 
 public class BridgeMain {
 	
@@ -71,6 +70,11 @@ public class BridgeMain {
 	public static final Dimension SMALL_ICON_SIZE = new Dimension(24, 24);
 	public static final Dimension POSE_ICON_SIZE = new Dimension(100, 100);
 	public static final Dimension DIRECTION_ICON_SIZE = new Dimension(50, 50);
+	
+	static double driveMaxSpeed = 0.5, elevatorMaxSpeed = 0.6, intakeMaxSpeed = 0.7;
+	static double leftMotorSpeed, rightMotorSpeed, elevatorSpeed, intakeSpeed;
+	
+	static boolean myoIsUnlocked = false;
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -286,12 +290,14 @@ public class BridgeMain {
 		Runnable lockUnlockMyo = () -> {
 			if(myo.isLocked()) {
 				myo.unlock();
+				myoIsUnlocked = true;
 				lockUnlockButton.setText("Lock");
 				unlockStatusIcon.setImage(imgUnlocked);
 				unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
 			}
 			else {
 				myo.lock();
+				myoIsUnlocked = false;
 				lockUnlockButton.setText("Unlock");
 				unlockStatusIcon.setImage(imgLocked);
 				unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
@@ -604,6 +610,22 @@ public class BridgeMain {
 		}
 	}
 	
+	/**
+	 * Computes the speeds that are to be sent to the robot based on the Myo's orientation and pose.
+	 */
+	public static void computeSpeeds(EulerOrientation orientation, int pose) {
+		//TODO
+	}
+	/**
+	 * Sends the speed values over NetworkTables to the robot.
+	 */
+	public static void updateNT() {
+		ntDriveLeft.forceSetDouble(leftMotorSpeed);
+		ntDriveRight.forceSetDouble(rightMotorSpeed);
+		ntElevator.forceSetDouble(elevatorSpeed);
+		ntIntake.forceSetDouble(intakeSpeed);
+	}
+	
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
 		
 		//Add shutdown hook to make sure Myo is cleaned up
@@ -664,8 +686,19 @@ public class BridgeMain {
 			myo.runHub(100);
 			
 			boolean onArm = myo.isOnArm();
+			EulerOrientation orientation = invertAngles ? myo.getOrientation().negate() : myo.getOrientation();
+			int pose = myo.getPose();
+			
+			if(onArm && myoIsUnlocked) {
+				computeSpeeds(orientation, pose);
+			}
+			else {
+				leftMotorSpeed = rightMotorSpeed = elevatorSpeed = intakeSpeed = 0;
+			}
+			updateNT();
+			
 			SwingUtilities.invokeLater(() -> {				
-				updateUI(onArm, invertAngles ? myo.getOrientation().negate() : myo.getOrientation(), myo.getPose());
+				updateUI(onArm, orientation, pose);
 			});
 		}
 	}
