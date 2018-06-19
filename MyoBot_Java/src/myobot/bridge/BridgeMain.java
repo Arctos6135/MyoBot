@@ -47,6 +47,7 @@ import myobot.bridge.myo.EulerOrientation;
 import myobot.bridge.myo.Myo;
 import myobot.bridge.myo.MyoException;
 import myobot.bridge.ui.AngleVisualizer;
+import myobot.bridge.ui.Speedometer;
 
 public class BridgeMain {
 	
@@ -63,7 +64,8 @@ public class BridgeMain {
 	public static final int GYRO_SIZE = 80;
 	public static final int SPEEDOMETER_SIZE = 80;
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
-	public static final Dimension VERTICAL_SPACING_SMALL = new Dimension(1, 5);
+	public static final int VERTICAL_SPACING_SMALL = 5;
+	public static final int HORIZONTAL_SPACING_SMALL = 20;
 	public static final Dimension TEXT_FIELD_MAX_SIZE = new Dimension(80, Integer.MAX_VALUE);
 	public static final Dimension SMALL_ICON_SIZE = new Dimension(24, 24);
 	public static final Dimension POSE_ICON_SIZE = new Dimension(100, 100);
@@ -98,8 +100,14 @@ public class BridgeMain {
 	//Speedometer components
 	static JPanel speedometerPanel;
 	static JPanel driveSpeedPanel;
+	static JPanel leftMotorPanel;
+	static JPanel rightMotorPanel;
 	static JPanel elevatorSpeedPanel;
 	static JPanel intakeSpeedPanel;
+	static JTextField leftMotorField, rightMotorField, elevatorField, intakeField;
+	static JLabel driveDirectionLabel;
+	static ImageIcon driveDirectionIcon;
+	static Speedometer leftMotorSpeedometer, rightMotorSpeedometer, elevatorSpeedometer, intakeSpeedometer;
 	//Last time's status
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
@@ -352,10 +360,10 @@ public class BridgeMain {
 		JLabel yawLabel = new JLabel("Yaw");
 		yawLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		yawPanel.add(yawLabel);
-		yawPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		yawPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		yawVisualizer = new AngleVisualizer(GYRO_SIZE);
 		yawPanel.add(yawVisualizer);
-		yawPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		yawPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		yawField = new JTextField();
 		yawField.setText("0.0");
 		yawField.setHorizontalAlignment(JTextField.CENTER);
@@ -371,10 +379,10 @@ public class BridgeMain {
 		JLabel pitchLabel = new JLabel("Pitch");
 		pitchLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		pitchPanel.add(pitchLabel);
-		pitchPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		pitchPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		pitchVisualizer = new AngleVisualizer(GYRO_SIZE);
 		pitchPanel.add(pitchVisualizer);
-		pitchPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		pitchPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		pitchField = new JTextField();
 		pitchField.setText("0.0");
 		pitchField.setHorizontalAlignment(JTextField.CENTER);
@@ -390,10 +398,10 @@ public class BridgeMain {
 		JLabel rollLabel = new JLabel("Roll");
 		rollLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		rollPanel.add(rollLabel);
-		rollPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		rollPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		rollVisualizer = new AngleVisualizer(GYRO_SIZE);
 		rollPanel.add(rollVisualizer);
-		rollPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		rollPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		rollField = new JTextField();
 		rollField.setText("0.0");
 		rollField.setHorizontalAlignment(JTextField.CENTER);
@@ -420,7 +428,7 @@ public class BridgeMain {
 		poseLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		posePanel.add(poseLabel);
 		poseNameLabel = new JLabel("Rest/Unknown");
-		posePanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		posePanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
 		poseNameLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 		poseNameLabel.setHorizontalAlignment(JLabel.CENTER);
 		posePanel.add(poseNameLabel);
@@ -430,8 +438,64 @@ public class BridgeMain {
 		constraints.weightx = 0.5;
 		constraints.fill = GridBagConstraints.BOTH;
 		middleRow.add(posePanel, constraints);
-		
 		mainFrame.add(middleRow);
+		
+		speedometerPanel = new JPanel();
+		speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
+		speedometerPanel.setLayout(new GridBagLayout());
+		
+		//TODO
+		driveSpeedPanel = new JPanel();
+		driveSpeedPanel.setBorder(BorderFactory.createTitledBorder("Drive Speed"));
+		driveSpeedPanel.setLayout(new BoxLayout(driveSpeedPanel, BoxLayout.X_AXIS));
+		driveSpeedPanel.add(Box.createHorizontalGlue());
+		
+		leftMotorPanel = new JPanel();
+		leftMotorPanel.setLayout(new BoxLayout(leftMotorPanel, BoxLayout.Y_AXIS));
+		JLabel leftMotorLabel = new JLabel("Left Motor");
+		leftMotorLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		leftMotorPanel.add(leftMotorLabel);
+		leftMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
+		leftMotorPanel.add(leftMotorSpeedometer);
+		leftMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		leftMotorField = new JTextField("0.0");
+		leftMotorField.setHorizontalAlignment(JTextField.CENTER);
+		leftMotorField.setEditable(false);
+		leftMotorField.setBackground(DISABLED_COLOR);
+		leftMotorField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
+		leftMotorPanel.add(leftMotorField);
+		driveSpeedPanel.add(leftMotorPanel);
+		driveSpeedPanel.add(Box.createHorizontalGlue());
+		
+		rightMotorPanel = new JPanel();
+		rightMotorPanel.setLayout(new BoxLayout(rightMotorPanel, BoxLayout.Y_AXIS));
+		JLabel rightMotorLabel = new JLabel("Right Motor");
+		rightMotorLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		rightMotorPanel.add(rightMotorLabel);
+		rightMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
+		rightMotorPanel.add(rightMotorSpeedometer);
+		rightMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		rightMotorField = new JTextField("0.0");
+		rightMotorField.setHorizontalAlignment(JTextField.CENTER);
+		rightMotorField.setEditable(false);
+		rightMotorField.setBackground(DISABLED_COLOR);
+		rightMotorField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
+		rightMotorPanel.add(rightMotorField);
+		driveSpeedPanel.add(rightMotorPanel);
+		driveSpeedPanel.add(Box.createHorizontalGlue());
+		
+		//driveDirectionIcon = new ImageIcon();
+		
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.weightx = 1.0;
+		speedometerPanel.add(driveSpeedPanel, constraints);
+		
+		mainFrame.add(speedometerPanel);
+		
 		mainFrame.pack();
 		fixSize(yawField);
 		fixSize(pitchField);
@@ -482,6 +546,19 @@ public class BridgeMain {
 			else {
 				onArmStatusIcon.setImage(imgOffArm);
 				onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
+				
+				yawField.setText("0.0");
+				pitchField.setText("0.0");
+				rollField.setText("0.0");
+				yawVisualizer.updateAngleNoRepaint(0);
+				pitchVisualizer.updateAngleNoRepaint(0);
+				rollVisualizer.updateAngleNoRepaint(0);
+				poseIcon.setImage(imgNoPose);
+				poseNameLabel.setText("Rest/Unknown");
+				lockUnlockButton.setText("Unlock");
+				unlockStatusIcon.setImage(imgLocked);
+				unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
+				mainFrame.repaint();
 			}
 			
 			lastOnArm = onArm;
