@@ -69,6 +69,7 @@ public class BridgeMain {
 	public static final int VERTICAL_SPACING_SMALL = 5;
 	public static final int HORIZONTAL_SPACING_SMALL = 20;
 	public static final Dimension TEXT_FIELD_MAX_SIZE = new Dimension(80, Integer.MAX_VALUE);
+	public static final Dimension SLIDER_MAX_SIZE = new Dimension(200, 39);
 	public static final Dimension SMALL_ICON_SIZE = new Dimension(24, 24);
 	public static final Dimension POSE_ICON_SIZE = new Dimension(100, 100);
 	public static final Dimension DIRECTION_ICON_SIZE = new Dimension(50, 50);
@@ -261,7 +262,7 @@ public class BridgeMain {
 		
 		mainFrame = new JFrame("MyoBot Control Center");
 		mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
+		mainFrame.setLayout(new GridBagLayout());
 		
 		//"Connecting to Myo" Dialog
 		connectingDialog = new JDialog(mainFrame, "Please Wait...");
@@ -394,8 +395,13 @@ public class BridgeMain {
 		topButtonsPanel.add(invertButton);
 		topButtonsPanel.add(updateRefButton);
 		topBarPanel.add(topButtonsPanel);
-		mainFrame.add(topBarPanel);
-		mainFrame.add(Box.createVerticalGlue());
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 0;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1.0;
+		c.weighty = 0.5;
+		mainFrame.add(topBarPanel, c);
 		
 		JPanel middleRow = new JPanel();
 		middleRow.setLayout(new GridBagLayout());
@@ -441,8 +447,13 @@ public class BridgeMain {
 		constraints.weightx = 0.5;
 		constraints.fill = GridBagConstraints.BOTH;
 		middleRow.add(posePanel, constraints);
-		mainFrame.add(middleRow);
-		mainFrame.add(Box.createVerticalGlue());
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1.0;
+		c.weighty = 1.0;
+		mainFrame.add(middleRow, c);
 		
 		//Speedometers
 		speedometerPanel = new JPanel();
@@ -493,8 +504,13 @@ public class BridgeMain {
 		constraints.weightx = 0.67;
 		speedometerPanel.add(attachmentsPanel, constraints);
 		
-		mainFrame.add(speedometerPanel);
-		mainFrame.add(Box.createVerticalGlue());
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 2;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1.0;
+		c.weighty = 0.8;
+		mainFrame.add(speedometerPanel, c);
 		
 		maxSpeedPanel = new JPanel();
 		maxSpeedPanel.setLayout(new BoxLayout(maxSpeedPanel, BoxLayout.LINE_AXIS));
@@ -513,6 +529,17 @@ public class BridgeMain {
 		labelTable.put(100, new JLabel("1"));
 		maxDriveSpeedSlider.setLabelTable(labelTable);
 		maxDriveSpeedSlider.setPaintLabels(true);
+		maxDriveSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
+		maxDriveSpeedSlider.addChangeListener(e -> {
+			JSlider source = (JSlider) e.getSource();
+			driveMaxSpeed = source.getValue() / 100.0;
+			String speed = String.valueOf(driveMaxSpeed);
+			if(!(speed.equals("1") || speed.equals("0")) &&
+					speed.substring(2).length() < 2) {
+				speed += "0";
+			}
+			maxDriveSpeedField.setText(speed);
+		});
 		maxDriveSpeedPanel = makeDisplayModule1("Drive", maxDriveSpeedSlider, maxDriveSpeedField = new JTextField());
 		maxDriveSpeedField.setText(String.valueOf(roundToPlaces(driveMaxSpeed, 2)));
 		maxSpeedPanel.add(maxDriveSpeedPanel);
@@ -524,6 +551,17 @@ public class BridgeMain {
 		maxElevatorSpeedSlider.setPaintTicks(true);
 		maxElevatorSpeedSlider.setLabelTable(labelTable);
 		maxElevatorSpeedSlider.setPaintLabels(true);
+		maxElevatorSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
+		maxElevatorSpeedSlider.addChangeListener(e -> {
+			JSlider source = (JSlider) e.getSource();
+			elevatorMaxSpeed = source.getValue() / 100.0;
+			String speed = String.valueOf(elevatorMaxSpeed);
+			if(!(speed.equals("1") || speed.equals("0")) &&
+					speed.substring(2).length() < 2) {
+				speed += "0";
+			}
+			maxElevatorSpeedField.setText(speed);
+		});
 		maxElevatorSpeedPanel = makeDisplayModule1("Elevator", maxElevatorSpeedSlider, maxElevatorSpeedField = new JTextField());
 		maxElevatorSpeedField.setText(String.valueOf(roundToPlaces(elevatorMaxSpeed, 2)));
 		maxSpeedPanel.add(maxElevatorSpeedPanel);
@@ -535,19 +573,39 @@ public class BridgeMain {
 		maxIntakeSpeedSlider.setPaintTicks(true);
 		maxIntakeSpeedSlider.setLabelTable(labelTable);
 		maxIntakeSpeedSlider.setPaintLabels(true);
+		maxIntakeSpeedSlider.setMaximumSize(SLIDER_MAX_SIZE);
+		maxIntakeSpeedSlider.addChangeListener(e -> {
+			JSlider source = (JSlider) e.getSource();
+			intakeMaxSpeed = source.getValue() / 100.0;
+			String speed = String.valueOf(intakeMaxSpeed);
+			if(!(speed.equals("1") || speed.equals("0")) &&
+					speed.substring(2).length() < 2) {
+				speed += "0";
+			}
+			maxIntakeSpeedField.setText(speed);
+		});
 		maxIntakeSpeedPanel = makeDisplayModule1("Intake", maxIntakeSpeedSlider, maxIntakeSpeedField = new JTextField());
 		maxIntakeSpeedField.setText(String.valueOf(roundToPlaces(intakeMaxSpeed, 2)));
 		maxSpeedPanel.add(maxIntakeSpeedPanel);
 		maxSpeedPanel.add(Box.createHorizontalGlue());
 		
-		mainFrame.add(maxSpeedPanel);
-		mainFrame.add(Box.createVerticalGlue());
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 3;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1.0;
+		c.weighty = 0.8;
+		mainFrame.add(maxSpeedPanel, c);
 		
 		mainFrame.pack();
-		mainFrame.setSize(700, mainFrame.getSize().height);
+		mainFrame.setSize(800, mainFrame.getSize().height);
 		fixSize(yawField);
 		fixSize(pitchField);
 		fixSize(rollField);
+		fixSize(leftMotorField);
+		fixSize(rightMotorField);
+		fixSize(elevatorSpeedField);
+		fixSize(intakeSpeedField);
 		fixSize(maxDriveSpeedField);
 		fixSize(maxElevatorSpeedField);
 		fixSize(maxIntakeSpeedField);
