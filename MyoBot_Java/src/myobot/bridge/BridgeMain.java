@@ -62,6 +62,8 @@ public class BridgeMain {
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
 	public static final Dimension VERTICAL_SPACING_SMALL = new Dimension(1, 5);
 	public static final Dimension TEXT_FIELD_MAX_SIZE = new Dimension(80, Integer.MAX_VALUE);
+	public static final Dimension SMALL_ICON_SIZE = new Dimension(24, 24);
+	public static final Dimension POSE_ICON_SIZE = new Dimension(100, 100);
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -77,19 +79,26 @@ public class BridgeMain {
 	static JButton lockUnlockButton, invertButton, updateRefButton;
 	//Different icons
 	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon;
+	static ImageIcon poseIcon;
 	//Labels for the icons
 	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel;
+	//Orientation components
 	static AngleVisualizer yawVisualizer, pitchVisualizer, rollVisualizer;
 	static JPanel yawPanel, pitchPanel, rollPanel;
 	static JTextField yawField, pitchField, rollField;
 	static JPanel angleVisualizerPanel;
+	//Pose components
+	static JPanel posePanel;
+	static JLabel poseLabel;
+	static JLabel poseNameLabel;
 	//Last time's status
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
 	//The "connecting to myo" dialog
 	static JDialog connectingDialog;
 	//Different icon images
-	static Image iconLocked, iconUnlocked, iconOnArm, iconOffArm, iconNormal, iconInverted;
+	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted;
+	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
 	
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
@@ -108,12 +117,18 @@ public class BridgeMain {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Image loadUIImage(String name) throws IOException {
+	public static Image loadUIImage(String name, Dimension size) throws IOException {
 		InputStream stream = BridgeMain.class.getClass().getResourceAsStream("/resources/ui/icons/" + name);
-		Image img = ImageIO.read(stream).getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+		Image img = ImageIO.read(stream).getScaledInstance(size.width, size.height, Image.SCALE_SMOOTH);
 		stream.close();
 		return img;
 	}
+	/**
+	 * Rounds a number to a certain number of decimal places.
+	 * @param num
+	 * @param places
+	 * @return
+	 */
 	public static double roundToPlaces(double num, int places) {
 		double factor = Math.pow(10, places);
 		return Math.round(num * factor) / factor;
@@ -129,6 +144,25 @@ public class BridgeMain {
 		component.setMinimumSize(size);
 	}
 	
+	/**
+	 * Loads the images.
+	 * @throws IOException 
+	 */
+	public static void loadImages() throws IOException {
+		imgLocked = loadUIImage("locked.png", SMALL_ICON_SIZE);
+		imgUnlocked = loadUIImage("unlocked.png", SMALL_ICON_SIZE);
+		imgOnArm = loadUIImage("on_arm.png", SMALL_ICON_SIZE);
+		imgOffArm = loadUIImage("not_on_arm.png", SMALL_ICON_SIZE);
+		imgInverted = loadUIImage("inverted.png", SMALL_ICON_SIZE);
+		imgNonInverted = loadUIImage("not_inverted.png", SMALL_ICON_SIZE);
+		
+		imgFist = loadUIImage("fist.png", POSE_ICON_SIZE);
+		imgSpreadFingers = loadUIImage("spread_fingers.png", POSE_ICON_SIZE);
+		imgWaveIn = loadUIImage("wave_in.png", POSE_ICON_SIZE);
+		imgWaveOut = loadUIImage("wave_out.png", POSE_ICON_SIZE);
+		imgDoubleTap = loadUIImage("double_tap.png", POSE_ICON_SIZE);
+		imgNoPose = loadUIImage("no_pose.png", POSE_ICON_SIZE);
+	}
 	/**
 	 * Sets up the Look And Feel.
 	 */
@@ -157,6 +191,7 @@ public class BridgeMain {
 	
 	public static void constructAndShowUI() throws IOException {
 		setupLookAndFeel();
+		loadImages();
 		
 		mainFrame = new JFrame("MyoBot Control Center");
 		mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -191,21 +226,13 @@ public class BridgeMain {
 		//Center the dialog
 		connectingDialog.setLocationRelativeTo(null);
 		
-		//Load images
-		iconLocked = loadUIImage("locked.png");
-		iconUnlocked = loadUIImage("unlocked.png");
-		iconOnArm = loadUIImage("on_arm.png");
-		iconOffArm = loadUIImage("not_on_arm.png");
-		iconInverted = loadUIImage("inverted.png");
-		iconNormal = loadUIImage("not_inverted.png");
-		
 		//Top bar with the icons and buttons
 		mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
 		topBarPanel = new JPanel();
 		//Construct ImageIcons
-		unlockStatusIcon = new ImageIcon(iconLocked);
-		onArmStatusIcon = new ImageIcon(iconOffArm);
-		invertStatusIcon = new ImageIcon(invertAngles ? iconInverted : iconNormal);
+		unlockStatusIcon = new ImageIcon(imgLocked);
+		onArmStatusIcon = new ImageIcon(imgOffArm);
+		invertStatusIcon = new ImageIcon(invertAngles ? imgInverted : imgNonInverted);
 		topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 5));
 		//Store these lambdas as runnables
 		//Reused later
@@ -213,13 +240,13 @@ public class BridgeMain {
 			if(myo.isLocked()) {
 				myo.unlock();
 				lockUnlockButton.setText("Lock");
-				unlockStatusIcon.setImage(iconUnlocked);
+				unlockStatusIcon.setImage(imgUnlocked);
 				unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
 			}
 			else {
 				myo.lock();
 				lockUnlockButton.setText("Unlock");
-				unlockStatusIcon.setImage(iconLocked);
+				unlockStatusIcon.setImage(imgLocked);
 				unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
 			}
 			topBarPanel.revalidate();
@@ -227,7 +254,7 @@ public class BridgeMain {
 		};
 		Runnable invertUninvertAngles = () -> {
 			invertAngles = !invertAngles;
-			invertStatusIcon.setImage(invertAngles ? iconInverted : iconNormal);
+			invertStatusIcon.setImage(invertAngles ? imgInverted : imgNonInverted);
 			invertStatusLabel.setToolTipText(invertAngles ? TOOLTIP_INVERTED : TOOLTIP_NORMAL);
 			
 			topBarPanel.revalidate();
@@ -301,6 +328,7 @@ public class BridgeMain {
 		topBarPanel.add(topButtonsPanel);
 		mainFrame.add(topBarPanel);
 		
+		JPanel middleRow = new JPanel();
 		//The panel with the orientation
 		angleVisualizerPanel = new JPanel();
 		angleVisualizerPanel.setLayout(new BoxLayout(angleVisualizerPanel, BoxLayout.X_AXIS));
@@ -364,7 +392,25 @@ public class BridgeMain {
 		angleVisualizerPanel.add(rollPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
-		mainFrame.add(angleVisualizerPanel);
+		middleRow.add(angleVisualizerPanel);
+		
+		//Pose section
+		posePanel = new JPanel();
+		posePanel.setLayout(new BoxLayout(posePanel, BoxLayout.Y_AXIS));
+		posePanel.setBorder(BorderFactory.createTitledBorder("Current Pose"));
+		poseIcon = new ImageIcon(imgNoPose);
+		poseLabel = new JLabel(poseIcon);
+		poseLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		posePanel.add(poseLabel);
+		poseNameLabel = new JLabel("Rest/Unknown");
+		posePanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		poseNameLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		poseNameLabel.setHorizontalAlignment(JLabel.CENTER);
+		posePanel.add(poseNameLabel);
+		
+		middleRow.add(posePanel);
+		
+		mainFrame.add(middleRow);
 		mainFrame.pack();
 		fixSize(yawField);
 		fixSize(pitchField);
@@ -409,11 +455,11 @@ public class BridgeMain {
 		//No need to worry about locked/unlocked or inverted/normal
 		if(onArm != lastOnArm) {
 			if(onArm) {
-				onArmStatusIcon.setImage(iconOnArm);
+				onArmStatusIcon.setImage(imgOnArm);
 				onArmStatusLabel.setToolTipText(TOOLTIP_ONARM);
 			}
 			else {
-				onArmStatusIcon.setImage(iconOffArm);
+				onArmStatusIcon.setImage(imgOffArm);
 				onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
 			}
 			
