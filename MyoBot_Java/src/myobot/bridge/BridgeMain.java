@@ -610,11 +610,72 @@ public class BridgeMain {
 		}
 	}
 	
+	static boolean drivingForwards = true;
+	static boolean doubleTapping = false;
 	/**
 	 * Computes the speeds that are to be sent to the robot based on the Myo's orientation and pose.
 	 */
 	public static void computeSpeeds(EulerOrientation orientation, int pose) {
-		//TODO
+		if(pose == Myo.POSE_DOUBLETAP && !doubleTapping) {
+			drivingForwards = !drivingForwards;
+			doubleTapping = true;
+			myo.notifyUserAction();
+		}
+		else if(pose != Myo.POSE_DOUBLETAP) {
+			doubleTapping = false;
+			
+			if(orientation.getPitchDegrees() > -45) {
+				elevatorSpeed = 0;
+				double drivingSpeed = Math.min(90, orientation.getPitchDegrees() + 45) / 90.0;
+				
+				if(!drivingForwards) {
+					drivingSpeed = -drivingSpeed;
+				}
+				
+				double turningSpeed = 0;
+				if(Math.abs(orientation.getYawDegrees()) >= 10) {
+					turningSpeed = Math.min(35, Math.abs(turningSpeed) - 10) / (35);
+					//Turning left
+					if(orientation.getYawDegrees() > 0) {
+						turningSpeed = -turningSpeed;
+					}
+				}
+				
+				leftMotorSpeed = drivingSpeed * driveMaxSpeed + turningSpeed * driveMaxSpeed;
+				rightMotorSpeed = drivingSpeed * driveMaxSpeed - turningSpeed * driveMaxSpeed;
+				
+				intakeSpeed = 0;
+				if(pose == Myo.POSE_FIST) {
+					intakeSpeed = intakeMaxSpeed;
+				}
+				else if(pose == Myo.POSE_SPREADFINGERS) {
+					intakeSpeed = -intakeMaxSpeed;
+				}
+			}
+			else if(pose == Myo.POSE_FIST) {
+				intakeSpeed = intakeMaxSpeed;
+				elevatorSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else if(pose == Myo.POSE_SPREADFINGERS) {
+				intakeSpeed = -intakeMaxSpeed;
+				elevatorSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else if(pose == Myo.POSE_WAVEOUT) {
+				elevatorSpeed = -elevatorMaxSpeed;
+				intakeSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else if(pose == Myo.POSE_WAVEIN) {
+				elevatorSpeed = elevatorMaxSpeed;
+				intakeSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else {
+				elevatorSpeed = intakeSpeed = leftMotorSpeed = rightMotorSpeed = 0;
+			}
+		}
 	}
 	/**
 	 * Sends the speed values over NetworkTables to the robot.

@@ -3,6 +3,7 @@ package myobot.bridge.myo;
 public class EulerOrientation {
 	
 	double yaw, pitch, roll;
+	double degYaw = Double.NaN, degPitch = Double.NaN, degRoll = Double.NaN;
 	
 	public EulerOrientation(double yaw, double pitch, double roll) {
 		this.yaw = yaw;
@@ -21,13 +22,13 @@ public class EulerOrientation {
 	}
 	
 	public double getYawDegrees() {
-		return Math.toDegrees(getYaw());
+		return Double.isNaN(degYaw) ? degYaw = Math.toDegrees(yaw) : degYaw;
 	}
 	public double getPitchDegrees() {
-		return Math.toDegrees(getPitch());
+		return Double.isNaN(degPitch) ? degPitch = Math.toDegrees(pitch) : degPitch;
 	}
 	public double getRollDegrees() {
-		return Math.toDegrees(getRoll());
+		return Double.isNaN(degRoll) ? degRoll = Math.toDegrees(roll) : degRoll;
 	}
 	
 	public EulerOrientation negate() {
