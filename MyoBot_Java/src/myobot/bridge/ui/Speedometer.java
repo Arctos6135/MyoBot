@@ -78,7 +78,7 @@ public class Speedometer extends JPanel {
 		
 		AffineTransform old = graphics.getTransform();
 		graphics.translate(width / 2, width / 2);
-		graphics.rotate(Math.PI * speed - (Math.PI / 2));
+		graphics.rotate(Math.PI * Math.abs(speed) - (Math.PI / 2));
 		graphics.drawImage(overlayImage, -width / 2, -width / 2, null);
 		graphics.setTransform(old);
 	}

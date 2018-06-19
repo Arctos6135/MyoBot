@@ -14,6 +14,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Hashtable;
 import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
@@ -31,6 +32,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JSlider;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -114,6 +116,17 @@ public class BridgeMain {
 	static JLabel driveDirectionLabel;
 	static ImageIcon driveDirectionIcon;
 	static Speedometer leftMotorSpeedometer, rightMotorSpeedometer, elevatorSpeedometer, intakeSpeedometer;
+	//Slider components
+	static JPanel maxSpeedPanel;
+	static JPanel maxDriveSpeedPanel;
+	static JPanel maxElevatorSpeedPanel;
+	static JPanel maxIntakeSpeedPanel;
+	static JSlider maxDriveSpeedSlider;
+	static JSlider maxElevatorSpeedSlider;
+	static JSlider maxIntakeSpeedSlider;
+	static JTextField maxDriveSpeedField;
+	static JTextField maxElevatorSpeedField;
+	static JTextField maxIntakeSpeedField;
 	//Last time's status
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
@@ -123,7 +136,7 @@ public class BridgeMain {
 	//Different icon images
 	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
-	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgNoMovement;
+	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgTurnCW, imgTurnCCW, imgNoMovement;
 	
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
@@ -195,6 +208,8 @@ public class BridgeMain {
 		imgFRight = loadUIImage("arrow_front_right.png", DIRECTION_ICON_SIZE);
 		imgBRight = loadUIImage("arrow_back_right.png", DIRECTION_ICON_SIZE);
 		imgNoMovement = loadUIImage("no_movement.png", DIRECTION_ICON_SIZE);
+		imgTurnCW = loadUIImage("arrow_rotate_right.png", DIRECTION_ICON_SIZE);
+		imgTurnCCW = loadUIImage("arrow_rotate_left.png", DIRECTION_ICON_SIZE);
 	}
 	/**
 	 * Sets up the Look And Feel.
@@ -222,7 +237,7 @@ public class BridgeMain {
 		ToolTipManager.sharedInstance().setInitialDelay(DELAY_TOOLTIP);
 	}
 	
-	public static JPanel makeNumberDisplayModule(String name, JPanel display, JTextField numDisplay) {
+	public static JPanel makeDisplayModule1(String name, JComponent display, JTextField numDisplay) {
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 		JLabel l = new JLabel(name);
@@ -380,6 +395,7 @@ public class BridgeMain {
 		topButtonsPanel.add(updateRefButton);
 		topBarPanel.add(topButtonsPanel);
 		mainFrame.add(topBarPanel);
+		mainFrame.add(Box.createVerticalGlue());
 		
 		JPanel middleRow = new JPanel();
 		middleRow.setLayout(new GridBagLayout());
@@ -389,13 +405,13 @@ public class BridgeMain {
 		angleVisualizerPanel.setBorder(BorderFactory.createTitledBorder("Orientation"));
 		
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
-		yawPanel = makeNumberDisplayModule("Yaw", yawVisualizer = new AngleVisualizer(GYRO_SIZE), yawField = new JTextField());
+		yawPanel = makeDisplayModule1("Yaw", yawVisualizer = new AngleVisualizer(GYRO_SIZE), yawField = new JTextField());
 		angleVisualizerPanel.add(yawPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
-		pitchPanel = makeNumberDisplayModule("Pitch", pitchVisualizer = new AngleVisualizer(GYRO_SIZE), pitchField = new JTextField());
+		pitchPanel = makeDisplayModule1("Pitch", pitchVisualizer = new AngleVisualizer(GYRO_SIZE), pitchField = new JTextField());
 		angleVisualizerPanel.add(pitchPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
-		rollPanel = makeNumberDisplayModule("Roll", rollVisualizer = new AngleVisualizer(GYRO_SIZE), rollField = new JTextField());
+		rollPanel = makeDisplayModule1("Roll", rollVisualizer = new AngleVisualizer(GYRO_SIZE), rollField = new JTextField());
 		angleVisualizerPanel.add(rollPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
@@ -426,10 +442,11 @@ public class BridgeMain {
 		constraints.fill = GridBagConstraints.BOTH;
 		middleRow.add(posePanel, constraints);
 		mainFrame.add(middleRow);
+		mainFrame.add(Box.createVerticalGlue());
 		
 		//Speedometers
 		speedometerPanel = new JPanel();
-		speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
+		//speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
 		speedometerPanel.setLayout(new GridBagLayout());
 		
 		driveSpeedPanel = new JPanel();
@@ -437,10 +454,10 @@ public class BridgeMain {
 		driveSpeedPanel.setLayout(new BoxLayout(driveSpeedPanel, BoxLayout.X_AXIS));
 		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
-		leftMotorPanel = makeNumberDisplayModule("Left Motor", leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
+		leftMotorPanel = makeDisplayModule1("Left Motor", leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
 		driveSpeedPanel.add(leftMotorPanel);
 		driveSpeedPanel.add(Box.createHorizontalGlue());
-		rightMotorPanel = makeNumberDisplayModule("Right Motor", rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
+		rightMotorPanel = makeDisplayModule1("Right Motor", rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), rightMotorField = new JTextField());
 		driveSpeedPanel.add(rightMotorPanel);
 		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
@@ -463,10 +480,10 @@ public class BridgeMain {
 		attachmentsPanel.setLayout(new BoxLayout(attachmentsPanel, BoxLayout.X_AXIS));
 		attachmentsPanel.add(Box.createHorizontalGlue());
 		
-		elevatorSpeedPanel = makeNumberDisplayModule("Elevator", elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), elevatorSpeedField = new JTextField());
+		elevatorSpeedPanel = makeDisplayModule1("Elevator", elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), elevatorSpeedField = new JTextField());
 		attachmentsPanel.add(elevatorSpeedPanel);
 		attachmentsPanel.add(Box.createHorizontalGlue());
-		intakeSpeedPanel = makeNumberDisplayModule("Intake", intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE), intakeSpeedField = new JTextField());
+		intakeSpeedPanel = makeDisplayModule1("Intake", intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE), intakeSpeedField = new JTextField());
 		attachmentsPanel.add(intakeSpeedPanel);
 		attachmentsPanel.add(Box.createHorizontalGlue());
 		
@@ -477,12 +494,63 @@ public class BridgeMain {
 		speedometerPanel.add(attachmentsPanel, constraints);
 		
 		mainFrame.add(speedometerPanel);
+		mainFrame.add(Box.createVerticalGlue());
+		
+		maxSpeedPanel = new JPanel();
+		maxSpeedPanel.setLayout(new BoxLayout(maxSpeedPanel, BoxLayout.LINE_AXIS));
+		maxSpeedPanel.setBorder(BorderFactory.createTitledBorder("Maximum Speeds"));
+		maxSpeedPanel.add(Box.createHorizontalGlue());
+		
+		maxDriveSpeedSlider = new JSlider(0, 100, (int) (driveMaxSpeed * 100));
+		maxDriveSpeedSlider.setMajorTickSpacing(25);
+		maxDriveSpeedSlider.setMinorTickSpacing(5);
+		maxDriveSpeedSlider.setPaintTicks(true);
+		Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+		labelTable.put(0, new JLabel("0"));
+		labelTable.put(25, new JLabel("0.25"));
+		labelTable.put(50, new JLabel("0.5"));
+		labelTable.put(75, new JLabel("0.75"));
+		labelTable.put(100, new JLabel("1"));
+		maxDriveSpeedSlider.setLabelTable(labelTable);
+		maxDriveSpeedSlider.setPaintLabels(true);
+		maxDriveSpeedPanel = makeDisplayModule1("Drive", maxDriveSpeedSlider, maxDriveSpeedField = new JTextField());
+		maxDriveSpeedField.setText(String.valueOf(roundToPlaces(driveMaxSpeed, 2)));
+		maxSpeedPanel.add(maxDriveSpeedPanel);
+		maxSpeedPanel.add(Box.createHorizontalGlue());
+		
+		maxElevatorSpeedSlider = new JSlider(0, 100, (int) (elevatorMaxSpeed * 100));
+		maxElevatorSpeedSlider.setMajorTickSpacing(25);
+		maxElevatorSpeedSlider.setMinorTickSpacing(5);
+		maxElevatorSpeedSlider.setPaintTicks(true);
+		maxElevatorSpeedSlider.setLabelTable(labelTable);
+		maxElevatorSpeedSlider.setPaintLabels(true);
+		maxElevatorSpeedPanel = makeDisplayModule1("Elevator", maxElevatorSpeedSlider, maxElevatorSpeedField = new JTextField());
+		maxElevatorSpeedField.setText(String.valueOf(roundToPlaces(elevatorMaxSpeed, 2)));
+		maxSpeedPanel.add(maxElevatorSpeedPanel);
+		maxSpeedPanel.add(Box.createHorizontalGlue());
+		
+		maxIntakeSpeedSlider = new JSlider(0, 100, (int) (intakeMaxSpeed * 100));
+		maxIntakeSpeedSlider.setMajorTickSpacing(25);
+		maxIntakeSpeedSlider.setMinorTickSpacing(5);
+		maxIntakeSpeedSlider.setPaintTicks(true);
+		maxIntakeSpeedSlider.setLabelTable(labelTable);
+		maxIntakeSpeedSlider.setPaintLabels(true);
+		maxIntakeSpeedPanel = makeDisplayModule1("Intake", maxIntakeSpeedSlider, maxIntakeSpeedField = new JTextField());
+		maxIntakeSpeedField.setText(String.valueOf(roundToPlaces(intakeMaxSpeed, 2)));
+		maxSpeedPanel.add(maxIntakeSpeedPanel);
+		maxSpeedPanel.add(Box.createHorizontalGlue());
+		
+		mainFrame.add(maxSpeedPanel);
+		mainFrame.add(Box.createVerticalGlue());
 		
 		mainFrame.pack();
-		mainFrame.setSize(600, mainFrame.getSize().height);
+		mainFrame.setSize(700, mainFrame.getSize().height);
 		fixSize(yawField);
 		fixSize(pitchField);
 		fixSize(rollField);
+		fixSize(maxDriveSpeedField);
+		fixSize(maxElevatorSpeedField);
+		fixSize(maxIntakeSpeedField);
 		mainFrame.setVisible(true);
 		
 		//Prompt for team number
@@ -608,6 +676,61 @@ public class BridgeMain {
 			
 			lastPose = pose;
 		}
+		
+		leftMotorField.setText(String.valueOf(roundToPlaces(leftMotorSpeed, 2)));
+		rightMotorField.setText(String.valueOf(roundToPlaces(rightMotorSpeed, 2)));
+		leftMotorSpeedometer.updateSpeedNoRepaint(leftMotorSpeed);
+		rightMotorSpeedometer.updateSpeedNoRepaint(rightMotorSpeed);
+		if(leftMotorSpeed == 0 && rightMotorSpeed == 0) {
+			if(driveDirectionIcon.getImage() != imgNoMovement) {
+				driveDirectionIcon.setImage(imgNoMovement);
+			}
+		}
+		else if(leftMotorSpeed > 0 && rightMotorSpeed > 0) {
+			if(leftMotorSpeed > rightMotorSpeed) {
+				if(driveDirectionIcon.getImage() != imgFRight) {
+					driveDirectionIcon.setImage(imgFRight);
+				}
+			}
+			else if(leftMotorSpeed < rightMotorSpeed) {
+				if(driveDirectionIcon.getImage() != imgFLeft) {
+					driveDirectionIcon.setImage(imgFLeft);
+				}
+			}
+			else if(driveDirectionIcon.getImage() != imgForward) {
+				driveDirectionIcon.setImage(imgForward);
+			}
+		}
+		else if(leftMotorSpeed < 0 && rightMotorSpeed < 0) {
+			if(leftMotorSpeed > rightMotorSpeed) {
+				if(driveDirectionIcon.getImage() != imgBLeft) {
+					driveDirectionIcon.setImage(imgBLeft);
+				}
+			}
+			else if(leftMotorSpeed < rightMotorSpeed) {
+				if(driveDirectionIcon.getImage() != imgBRight) {
+					driveDirectionIcon.setImage(imgBRight);
+				}
+			}
+			else if(driveDirectionIcon.getImage() != imgBackward) {
+				driveDirectionIcon.setImage(imgBackward);
+			}
+		}
+		else {
+			if(leftMotorSpeed > rightMotorSpeed) {
+				if(driveDirectionIcon.getImage() != imgTurnCW) {
+					driveDirectionIcon.setImage(imgTurnCW);
+				}
+			}
+			else if(driveDirectionIcon.getImage() != imgTurnCCW) {
+				driveDirectionIcon.setImage(imgTurnCCW);
+			}
+		}
+		elevatorSpeedField.setText(String.valueOf(roundToPlaces(elevatorSpeed, 2)));
+		intakeSpeedField.setText(String.valueOf(roundToPlaces(intakeSpeed, 2)));
+		elevatorSpeedometer.updateSpeedNoRepaint(elevatorSpeed);
+		intakeSpeedometer.updateSpeedNoRepaint(intakeSpeed);
+		speedometerPanel.repaint();
 	}
 	
 	static boolean drivingForwards = true;
@@ -624,23 +747,24 @@ public class BridgeMain {
 		else if(pose != Myo.POSE_DOUBLETAP) {
 			doubleTapping = false;
 			
-			if(orientation.getPitchDegrees() > -45) {
+			if(orientation.getPitchDegrees() > -20) {
 				elevatorSpeed = 0;
-				double drivingSpeed = Math.min(90, orientation.getPitchDegrees() + 45) / 90.0;
+				double drivingSpeed = Math.min(45, orientation.getPitchDegrees() + 20) / 45.0;
 				
 				if(!drivingForwards) {
 					drivingSpeed = -drivingSpeed;
 				}
 				
 				double turningSpeed = 0;
-				if(Math.abs(orientation.getYawDegrees()) >= 10) {
-					turningSpeed = Math.min(35, Math.abs(turningSpeed) - 10) / (35);
+				if(Math.abs(orientation.getYawDegrees()) >= 15) {
+					turningSpeed = Math.min(70, Math.abs(orientation.getYawDegrees()) - 15) / 70;
 					//Turning left
 					if(orientation.getYawDegrees() > 0) {
 						turningSpeed = -turningSpeed;
 					}
 				}
 				
+				drivingSpeed -= Math.copySign(turningSpeed, drivingSpeed);
 				leftMotorSpeed = drivingSpeed * driveMaxSpeed + turningSpeed * driveMaxSpeed;
 				rightMotorSpeed = drivingSpeed * driveMaxSpeed - turningSpeed * driveMaxSpeed;
 				
