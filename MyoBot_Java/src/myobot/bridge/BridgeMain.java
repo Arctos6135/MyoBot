@@ -48,6 +48,7 @@ import myobot.bridge.myo.Myo;
 import myobot.bridge.myo.MyoException;
 import myobot.bridge.ui.AngleVisualizer;
 import myobot.bridge.ui.Speedometer;
+import sun.font.CreatedFontTracker;
 
 public class BridgeMain {
 	
@@ -217,6 +218,24 @@ public class BridgeMain {
 		ToolTipManager.sharedInstance().setInitialDelay(DELAY_TOOLTIP);
 	}
 	
+	public static JPanel makeNumberDisplayModule(String name, JPanel display, JTextField numDisplay) {
+		JPanel mainPanel = new JPanel();
+		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+		JLabel l = new JLabel(name);
+		l.setAlignmentX(JLabel.CENTER_ALIGNMENT);;
+		mainPanel.add(l);
+		mainPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		mainPanel.add(display);
+		mainPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		numDisplay.setText("0.0");
+		numDisplay.setHorizontalAlignment(JTextField.CENTER);
+		numDisplay.setEditable(false);
+		numDisplay.setBackground(DISABLED_COLOR);
+		numDisplay.setMaximumSize(TEXT_FIELD_MAX_SIZE);
+		mainPanel.add(numDisplay);
+		return mainPanel;
+	}
+	
 	public static void constructAndShowUI() throws IOException {
 		setupLookAndFeel();
 		loadImages();
@@ -364,60 +383,13 @@ public class BridgeMain {
 		angleVisualizerPanel.setBorder(BorderFactory.createTitledBorder("Orientation"));
 		
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
-		yawPanel = new JPanel();
-		yawPanel.setLayout(new BoxLayout(yawPanel, BoxLayout.Y_AXIS));
-		JLabel yawLabel = new JLabel("Yaw");
-		yawLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		yawPanel.add(yawLabel);
-		yawPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		yawVisualizer = new AngleVisualizer(GYRO_SIZE);
-		yawPanel.add(yawVisualizer);
-		yawPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		yawField = new JTextField();
-		yawField.setText("0.0");
-		yawField.setHorizontalAlignment(JTextField.CENTER);
-		yawField.setEditable(false);
-		yawField.setBackground(DISABLED_COLOR);
-		yawField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		yawPanel.add(yawField);
+		yawPanel = makeNumberDisplayModule("Yaw", yawVisualizer = new AngleVisualizer(GYRO_SIZE), yawField = new JTextField());
 		angleVisualizerPanel.add(yawPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
-		
-		pitchPanel = new JPanel();
-		pitchPanel.setLayout(new BoxLayout(pitchPanel, BoxLayout.Y_AXIS));
-		JLabel pitchLabel = new JLabel("Pitch");
-		pitchLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		pitchPanel.add(pitchLabel);
-		pitchPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		pitchVisualizer = new AngleVisualizer(GYRO_SIZE);
-		pitchPanel.add(pitchVisualizer);
-		pitchPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		pitchField = new JTextField();
-		pitchField.setText("0.0");
-		pitchField.setHorizontalAlignment(JTextField.CENTER);
-		pitchField.setEditable(false);
-		pitchField.setBackground(DISABLED_COLOR);
-		pitchField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		pitchPanel.add(pitchField);
+		pitchPanel = makeNumberDisplayModule("Pitch", pitchVisualizer = new AngleVisualizer(GYRO_SIZE), pitchField = new JTextField());
 		angleVisualizerPanel.add(pitchPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
-		
-		rollPanel = new JPanel();
-		rollPanel.setLayout(new BoxLayout(rollPanel, BoxLayout.Y_AXIS));
-		JLabel rollLabel = new JLabel("Roll");
-		rollLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		rollPanel.add(rollLabel);
-		rollPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		rollVisualizer = new AngleVisualizer(GYRO_SIZE);
-		rollPanel.add(rollVisualizer);
-		rollPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		rollField = new JTextField();
-		rollField.setText("0.0");
-		rollField.setHorizontalAlignment(JTextField.CENTER);
-		rollField.setEditable(false);
-		rollField.setBackground(DISABLED_COLOR);
-		rollField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		rollPanel.add(rollField);
+		rollPanel = makeNumberDisplayModule("Roll", rollVisualizer = new AngleVisualizer(GYRO_SIZE), rollField = new JTextField());
 		angleVisualizerPanel.add(rollPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
@@ -449,6 +421,7 @@ public class BridgeMain {
 		middleRow.add(posePanel, constraints);
 		mainFrame.add(middleRow);
 		
+		//Speedometers
 		speedometerPanel = new JPanel();
 		speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
 		speedometerPanel.setLayout(new GridBagLayout());
@@ -458,39 +431,10 @@ public class BridgeMain {
 		driveSpeedPanel.setLayout(new BoxLayout(driveSpeedPanel, BoxLayout.X_AXIS));
 		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
-		leftMotorPanel = new JPanel();
-		leftMotorPanel.setLayout(new BoxLayout(leftMotorPanel, BoxLayout.Y_AXIS));
-		JLabel leftMotorLabel = new JLabel("Left Motor");
-		leftMotorLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		leftMotorPanel.add(leftMotorLabel);
-		leftMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
-		leftMotorPanel.add(leftMotorSpeedometer);
-		leftMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		leftMotorField = new JTextField("0.0");
-		leftMotorField.setHorizontalAlignment(JTextField.CENTER);
-		leftMotorField.setEditable(false);
-		leftMotorField.setBackground(DISABLED_COLOR);
-		leftMotorField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		leftMotorPanel.add(leftMotorField);
+		leftMotorPanel = makeNumberDisplayModule("Left Motor", leftMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
 		driveSpeedPanel.add(leftMotorPanel);
 		driveSpeedPanel.add(Box.createHorizontalGlue());
-		
-		rightMotorPanel = new JPanel();
-		rightMotorPanel.setLayout(new BoxLayout(rightMotorPanel, BoxLayout.Y_AXIS));
-		JLabel rightMotorLabel = new JLabel("Right Motor");
-		rightMotorLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		rightMotorPanel.add(rightMotorLabel);
-		rightMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
-		rightMotorPanel.add(rightMotorSpeedometer);
-		rightMotorPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		rightMotorField = new JTextField("0.0");
-		rightMotorField.setHorizontalAlignment(JTextField.CENTER);
-		rightMotorField.setEditable(false);
-		rightMotorField.setBackground(DISABLED_COLOR);
-		rightMotorField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		rightMotorPanel.add(rightMotorField);
+		rightMotorPanel = makeNumberDisplayModule("Right Motor", rightMotorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), leftMotorField = new JTextField());
 		driveSpeedPanel.add(rightMotorPanel);
 		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
@@ -513,39 +457,10 @@ public class BridgeMain {
 		attachmentsPanel.setLayout(new BoxLayout(attachmentsPanel, BoxLayout.X_AXIS));
 		attachmentsPanel.add(Box.createHorizontalGlue());
 		
-		elevatorSpeedPanel = new JPanel();
-		elevatorSpeedPanel.setLayout(new BoxLayout(elevatorSpeedPanel, BoxLayout.Y_AXIS));
-		JLabel elevatorSpeedLabel = new JLabel("Elevator");
-		elevatorSpeedLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		elevatorSpeedPanel.add(elevatorSpeedLabel);
-		elevatorSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
-		elevatorSpeedPanel.add(elevatorSpeedometer);
-		elevatorSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		elevatorSpeedField = new JTextField("0.0");
-		elevatorSpeedField.setHorizontalAlignment(JTextField.CENTER);
-		elevatorSpeedField.setEditable(false);
-		elevatorSpeedField.setBackground(DISABLED_COLOR);
-		elevatorSpeedField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		elevatorSpeedPanel.add(elevatorSpeedField);
+		elevatorSpeedPanel = makeNumberDisplayModule("Elevator", elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE), elevatorSpeedField = new JTextField());
 		attachmentsPanel.add(elevatorSpeedPanel);
 		attachmentsPanel.add(Box.createHorizontalGlue());
-		
-		intakeSpeedPanel = new JPanel();
-		intakeSpeedPanel.setLayout(new BoxLayout(intakeSpeedPanel, BoxLayout.Y_AXIS));
-		JLabel intakeSpeedLabel = new JLabel("Intake");
-		intakeSpeedLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-		intakeSpeedPanel.add(intakeSpeedLabel);
-		intakeSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
-		intakeSpeedPanel.add(intakeSpeedometer);
-		intakeSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
-		intakeSpeedField = new JTextField("0.0");
-		intakeSpeedField.setHorizontalAlignment(JTextField.CENTER);
-		intakeSpeedField.setEditable(false);
-		intakeSpeedField.setBackground(DISABLED_COLOR);
-		intakeSpeedField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
-		intakeSpeedPanel.add(intakeSpeedField);
+		intakeSpeedPanel = makeNumberDisplayModule("Intake", intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE), intakeSpeedField = new JTextField());
 		attachmentsPanel.add(intakeSpeedPanel);
 		attachmentsPanel.add(Box.createHorizontalGlue());
 		
