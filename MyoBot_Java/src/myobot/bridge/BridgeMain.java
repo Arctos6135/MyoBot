@@ -69,7 +69,7 @@ public class BridgeMain {
 	public static final Dimension TEXT_FIELD_MAX_SIZE = new Dimension(80, Integer.MAX_VALUE);
 	public static final Dimension SMALL_ICON_SIZE = new Dimension(24, 24);
 	public static final Dimension POSE_ICON_SIZE = new Dimension(100, 100);
-	public static final Dimension DIRECTION_ICON_SIZE = new Dimension(64, 64);
+	public static final Dimension DIRECTION_ICON_SIZE = new Dimension(50, 50);
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -102,9 +102,10 @@ public class BridgeMain {
 	static JPanel driveSpeedPanel;
 	static JPanel leftMotorPanel;
 	static JPanel rightMotorPanel;
+	static JPanel attachmentsPanel;
 	static JPanel elevatorSpeedPanel;
 	static JPanel intakeSpeedPanel;
-	static JTextField leftMotorField, rightMotorField, elevatorField, intakeField;
+	static JTextField leftMotorField, rightMotorField, elevatorSpeedField, intakeSpeedField;
 	static JLabel driveDirectionLabel;
 	static ImageIcon driveDirectionIcon;
 	static Speedometer leftMotorSpeedometer, rightMotorSpeedometer, elevatorSpeedometer, intakeSpeedometer;
@@ -117,7 +118,7 @@ public class BridgeMain {
 	//Different icon images
 	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
-	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight;
+	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgNoMovement;
 	
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
@@ -181,6 +182,14 @@ public class BridgeMain {
 		imgWaveOut = loadUIImage("wave_out.png", POSE_ICON_SIZE);
 		imgDoubleTap = loadUIImage("double_tap.png", POSE_ICON_SIZE);
 		imgNoPose = loadUIImage("no_pose.png", POSE_ICON_SIZE);
+
+		imgForward = loadUIImage("arrow_front.png", DIRECTION_ICON_SIZE);
+		imgBackward = loadUIImage("arrow_back.png", DIRECTION_ICON_SIZE);
+		imgFLeft = loadUIImage("arrow_front_left.png", DIRECTION_ICON_SIZE);
+		imgBLeft = loadUIImage("arrow_back_left.png", DIRECTION_ICON_SIZE);
+		imgFRight = loadUIImage("arrow_front_right.png", DIRECTION_ICON_SIZE);
+		imgBRight = loadUIImage("arrow_back_right.png", DIRECTION_ICON_SIZE);
+		imgNoMovement = loadUIImage("no_movement.png", DIRECTION_ICON_SIZE);
 	}
 	/**
 	 * Sets up the Look And Feel.
@@ -444,9 +453,8 @@ public class BridgeMain {
 		speedometerPanel.setBorder(BorderFactory.createTitledBorder("Robot Status"));
 		speedometerPanel.setLayout(new GridBagLayout());
 		
-		//TODO
 		driveSpeedPanel = new JPanel();
-		driveSpeedPanel.setBorder(BorderFactory.createTitledBorder("Drive Speed"));
+		driveSpeedPanel.setBorder(BorderFactory.createTitledBorder("Drive Status"));
 		driveSpeedPanel.setLayout(new BoxLayout(driveSpeedPanel, BoxLayout.X_AXIS));
 		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
@@ -486,7 +494,13 @@ public class BridgeMain {
 		driveSpeedPanel.add(rightMotorPanel);
 		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
-		//driveDirectionIcon = new ImageIcon();
+		driveDirectionIcon = new ImageIcon(imgNoMovement);
+		driveDirectionLabel = new JLabel(driveDirectionIcon);
+		driveDirectionLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		driveDirectionLabel.setHorizontalAlignment(JLabel.CENTER);
+		driveDirectionLabel.setToolTipText("Drive Direction");
+		driveSpeedPanel.add(driveDirectionLabel);
+		driveSpeedPanel.add(Box.createHorizontalGlue());
 		
 		constraints.gridx = 0;
 		constraints.gridy = 0;
@@ -494,9 +508,57 @@ public class BridgeMain {
 		constraints.weightx = 1.0;
 		speedometerPanel.add(driveSpeedPanel, constraints);
 		
+		attachmentsPanel = new JPanel();
+		attachmentsPanel.setBorder(BorderFactory.createTitledBorder("Attachments Status"));
+		attachmentsPanel.setLayout(new BoxLayout(attachmentsPanel, BoxLayout.X_AXIS));
+		attachmentsPanel.add(Box.createHorizontalGlue());
+		
+		elevatorSpeedPanel = new JPanel();
+		elevatorSpeedPanel.setLayout(new BoxLayout(elevatorSpeedPanel, BoxLayout.Y_AXIS));
+		JLabel elevatorSpeedLabel = new JLabel("Elevator");
+		elevatorSpeedLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		elevatorSpeedPanel.add(elevatorSpeedLabel);
+		elevatorSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		elevatorSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
+		elevatorSpeedPanel.add(elevatorSpeedometer);
+		elevatorSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		elevatorSpeedField = new JTextField("0.0");
+		elevatorSpeedField.setHorizontalAlignment(JTextField.CENTER);
+		elevatorSpeedField.setEditable(false);
+		elevatorSpeedField.setBackground(DISABLED_COLOR);
+		elevatorSpeedField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
+		elevatorSpeedPanel.add(elevatorSpeedField);
+		attachmentsPanel.add(elevatorSpeedPanel);
+		attachmentsPanel.add(Box.createHorizontalGlue());
+		
+		intakeSpeedPanel = new JPanel();
+		intakeSpeedPanel.setLayout(new BoxLayout(intakeSpeedPanel, BoxLayout.Y_AXIS));
+		JLabel intakeSpeedLabel = new JLabel("Intake");
+		intakeSpeedLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		intakeSpeedPanel.add(intakeSpeedLabel);
+		intakeSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		intakeSpeedometer = new Speedometer(SPEEDOMETER_SIZE);
+		intakeSpeedPanel.add(intakeSpeedometer);
+		intakeSpeedPanel.add(Box.createVerticalStrut(VERTICAL_SPACING_SMALL));
+		intakeSpeedField = new JTextField("0.0");
+		intakeSpeedField.setHorizontalAlignment(JTextField.CENTER);
+		intakeSpeedField.setEditable(false);
+		intakeSpeedField.setBackground(DISABLED_COLOR);
+		intakeSpeedField.setMaximumSize(TEXT_FIELD_MAX_SIZE);
+		intakeSpeedPanel.add(intakeSpeedField);
+		attachmentsPanel.add(intakeSpeedPanel);
+		attachmentsPanel.add(Box.createHorizontalGlue());
+		
+		constraints.gridx = 1;
+		constraints.gridy = 0;
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.weightx = 0.67;
+		speedometerPanel.add(attachmentsPanel, constraints);
+		
 		mainFrame.add(speedometerPanel);
 		
 		mainFrame.pack();
+		mainFrame.setSize(600, mainFrame.getSize().height);
 		fixSize(yawField);
 		fixSize(pitchField);
 		fixSize(rollField);
