@@ -4,6 +4,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -34,10 +36,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import com.sun.glass.events.KeyEvent;
-
-import javax.swing.UnsupportedLookAndFeelException;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
@@ -94,6 +95,7 @@ public class BridgeMain {
 	//Last time's status
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
+	static int lastPose = Myo.POSE_REST;
 	//The "connecting to myo" dialog
 	static JDialog connectingDialog;
 	//Different icon images
@@ -329,6 +331,7 @@ public class BridgeMain {
 		mainFrame.add(topBarPanel);
 		
 		JPanel middleRow = new JPanel();
+		middleRow.setLayout(new GridBagLayout());
 		//The panel with the orientation
 		angleVisualizerPanel = new JPanel();
 		angleVisualizerPanel.setLayout(new BoxLayout(angleVisualizerPanel, BoxLayout.X_AXIS));
@@ -392,7 +395,12 @@ public class BridgeMain {
 		angleVisualizerPanel.add(rollPanel);
 		angleVisualizerPanel.add(Box.createHorizontalGlue());
 		
-		middleRow.add(angleVisualizerPanel);
+		GridBagConstraints constraints = new GridBagConstraints();
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.weightx = 1.0;
+		constraints.fill = GridBagConstraints.BOTH;
+		middleRow.add(angleVisualizerPanel, constraints);
 		
 		//Pose section
 		posePanel = new JPanel();
@@ -408,7 +416,11 @@ public class BridgeMain {
 		poseNameLabel.setHorizontalAlignment(JLabel.CENTER);
 		posePanel.add(poseNameLabel);
 		
-		middleRow.add(posePanel);
+		constraints.gridx = 1;
+		constraints.gridy = 0;
+		constraints.weightx = 0.5;
+		constraints.fill = GridBagConstraints.BOTH;
+		middleRow.add(posePanel, constraints);
 		
 		mainFrame.add(middleRow);
 		mainFrame.pack();
@@ -451,7 +463,7 @@ public class BridgeMain {
 		connectingDialog.setVisible(true);
 	}
 	
-	public static void updateUI(boolean onArm, EulerOrientation orientation) {
+	public static void updateUI(boolean onArm, EulerOrientation orientation, int pose) {
 		//No need to worry about locked/unlocked or inverted/normal
 		if(onArm != lastOnArm) {
 			if(onArm) {
@@ -487,6 +499,45 @@ public class BridgeMain {
 			rollField.setText(String.valueOf(roundToPlaces(orientation.getRollDegrees(), 2)));
 			rollVisualizer.updateAngleNoRepaint(-orientation.getRollDegrees());
 			rollPanel.repaint();
+		}
+		
+		if(pose != lastPose) {
+			Image imgPose;
+			String poseName;
+			switch(pose) {
+			case Myo.POSE_FIST:
+				imgPose = imgFist;
+				poseName = "Fist";
+				break;
+			case Myo.POSE_SPREADFINGERS:
+				imgPose = imgSpreadFingers;
+				poseName = "Spread Fingers";
+				break;
+			case Myo.POSE_WAVEIN:
+				imgPose = imgWaveIn;
+				poseName = "Wave In";
+				break;
+			case Myo.POSE_WAVEOUT:
+				imgPose = imgWaveOut;
+				poseName = "Wave Out";
+				break;
+			case Myo.POSE_DOUBLETAP:
+				imgPose = imgDoubleTap;
+				poseName = "Double Tap";
+				break;
+			case Myo.POSE_REST:
+			case Myo.POSE_UNKNOWN:
+			default:
+				imgPose = imgNoPose;
+				poseName = "Rest/Unknown";
+				break;
+			}
+			
+			poseIcon.setImage(imgPose);
+			poseNameLabel.setText(poseName);
+			posePanel.repaint();
+			
+			lastPose = pose;
 		}
 	}
 	
@@ -551,7 +602,7 @@ public class BridgeMain {
 			
 			boolean onArm = myo.isOnArm();
 			SwingUtilities.invokeLater(() -> {				
-				updateUI(onArm, invertAngles ? myo.getOrientation().negate() : myo.getOrientation());
+				updateUI(onArm, invertAngles ? myo.getOrientation().negate() : myo.getOrientation(), myo.getPose());
 			});
 		}
 	}
