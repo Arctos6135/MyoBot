@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Image;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -14,10 +15,14 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -29,11 +34,15 @@ import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+
+import com.sun.glass.events.KeyEvent;
+
 import javax.swing.UnsupportedLookAndFeelException;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import myobot.bridge.myo.EulerOrientation;
 import myobot.bridge.myo.Myo;
 import myobot.bridge.myo.MyoException;
 import myobot.bridge.ui.AngleVisualizer;
@@ -42,6 +51,7 @@ public class BridgeMain {
 	
 	public static final Color LF_BACKGROUND = new Color(230, 230, 230);
 	public static final Color LF_COLOR = new Color(34, 167, 240);
+	public static final Color DISABLED_COLOR = new Color(230, 230, 230);
 	public static final int DELAY_TOOLTIP = 500;
 	public static final String TOOLTIP_UNLOCKED = "<html>Myo is unlocked.<br>Click to lock.</html>";
 	public static final String TOOLTIP_LOCKED = "<html>Myo is locked.<br>Click to unlock.</html>";
@@ -49,6 +59,8 @@ public class BridgeMain {
 	public static final String TOOLTIP_OFFARM = "<html>Myo is not on arm.</html>";
 	public static final String TOOLTIP_NORMAL = "<html>Orientation is not inverted.<br>Click to invert.</html>";
 	public static final String TOOLTIP_INVERTED = "<html>Orientation is inverted.<br>Click to return to normal.</html>";
+	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
+	public static final Dimension VERTICAL_SPACING_SMALL = new Dimension(1, 5);
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -61,13 +73,14 @@ public class BridgeMain {
 	//Panel that stores the top status icons and buttons
 	static JPanel topBarPanel;
 	//Buttons in the top bar
-	static JButton lockUnlockButton;
-	static JButton invertButton;
+	static JButton lockUnlockButton, invertButton, updateRefButton;
 	//Different icons
 	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon;
 	//Labels for the icons
 	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel;
 	static AngleVisualizer yawVisualizer, pitchVisualizer, rollVisualizer;
+	static JPanel yawPanel, pitchPanel, rollPanel;
+	static JTextField yawField, pitchField, rollField;
 	static JPanel angleVisualizerPanel;
 	//Last time's status
 	//Used to determine whether or not to update the icons
@@ -99,6 +112,20 @@ public class BridgeMain {
 		Image img = ImageIO.read(stream).getScaledInstance(24, 24, Image.SCALE_SMOOTH);
 		stream.close();
 		return img;
+	}
+	public static double roundToPlaces(double num, int places) {
+		double factor = Math.pow(10, places);
+		return Math.round(num * factor) / factor;
+	}
+	/**
+	 * Sets a component's minimum, maximum and preferred sizes to its current size.
+	 * @param component
+	 */
+	public static void fixSize(JComponent component) {
+		Dimension size = component.getSize();
+		component.setPreferredSize(size);
+		component.setMaximumSize(size);
+		component.setMinimumSize(size);
 	}
 	
 	/**
@@ -164,7 +191,6 @@ public class BridgeMain {
 		connectingDialog.setLocationRelativeTo(null);
 		
 		//Load images
-		mainFrame.setSize(new Dimension(500, 500));
 		iconLocked = loadUIImage("locked.png");
 		iconUnlocked = loadUIImage("unlocked.png");
 		iconOnArm = loadUIImage("on_arm.png");
@@ -233,30 +259,107 @@ public class BridgeMain {
 		
 		//Buttons have their own sub-panel so they can have different gaps
 		JPanel topButtonsPanel = new JPanel();
-		lockUnlockButton = new JButton("Unlock");
-		lockUnlockButton.setPreferredSize(new Dimension(80, 30));
-		lockUnlockButton.addActionListener(e -> {
-			lockUnlockMyo.run();
-		});
-		invertButton = new JButton("Invert");
-		invertButton.setPreferredSize(new Dimension(80, 30));
-		invertButton.addActionListener(e -> {
-			invertUninvertAngles.run();
-		});
+		lockUnlockButton = new JButton();
+		lockUnlockButton.setPreferredSize(BUTTON_SIZE);
+		@SuppressWarnings("serial")
+		Action lockUnlockMyoAction = new AbstractAction("Unlock") {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				lockUnlockMyo.run();
+			}
+		};
+		lockUnlockButton.setAction(lockUnlockMyoAction);
+		lockUnlockMyoAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_L);
+		
+		invertButton = new JButton();
+		invertButton.setPreferredSize(BUTTON_SIZE);
+		@SuppressWarnings("serial")
+		Action invertAction = new AbstractAction("Invert") {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				invertUninvertAngles.run();
+			}
+		};
+		invertButton.setAction(invertAction);
+		invertAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_I);
+		
+		updateRefButton = new JButton();
+		@SuppressWarnings("serial")
+		Action updateRefAction = new AbstractAction("Update Reference Orientation") {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				myo.updateReferenceOrientation();
+			}
+		};
+		updateRefButton.setAction(updateRefAction);
+		updateRefAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
+		
 		topButtonsPanel.add(lockUnlockButton);
 		topButtonsPanel.add(invertButton);
+		topButtonsPanel.add(updateRefButton);
 		topBarPanel.add(topButtonsPanel);
 		mainFrame.add(topBarPanel);
 		
+		//The panel with the orientation
 		angleVisualizerPanel = new JPanel();
-		yawVisualizer = new AngleVisualizer(96);
-		pitchVisualizer = new AngleVisualizer(96);
-		rollVisualizer = new AngleVisualizer(96);
-		angleVisualizerPanel.add(yawVisualizer);
-		angleVisualizerPanel.add(pitchVisualizer);
-		angleVisualizerPanel.add(rollVisualizer);
-		mainFrame.add(angleVisualizerPanel);
+		angleVisualizerPanel.setBorder(BorderFactory.createTitledBorder("Orientation"));
 		
+		yawPanel = new JPanel();
+		yawPanel.setLayout(new BoxLayout(yawPanel, BoxLayout.Y_AXIS));
+		JLabel yawLabel = new JLabel("Yaw");
+		yawLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		yawPanel.add(yawLabel);
+		yawPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		yawVisualizer = new AngleVisualizer(80);
+		yawPanel.add(yawVisualizer);
+		yawPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		yawField = new JTextField();
+		yawField.setText("0.0");
+		yawField.setHorizontalAlignment(JTextField.CENTER);
+		yawField.setEditable(false);
+		yawField.setBackground(DISABLED_COLOR);
+		yawPanel.add(yawField);
+		angleVisualizerPanel.add(yawPanel);
+		
+		pitchPanel = new JPanel();
+		pitchPanel.setLayout(new BoxLayout(pitchPanel, BoxLayout.Y_AXIS));
+		JLabel pitchLabel = new JLabel("Pitch");
+		pitchLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		pitchPanel.add(pitchLabel);
+		pitchPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		pitchVisualizer = new AngleVisualizer(80);
+		pitchPanel.add(pitchVisualizer);
+		pitchPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		pitchField = new JTextField();
+		pitchField.setText("0.0");
+		pitchField.setHorizontalAlignment(JTextField.CENTER);
+		pitchField.setEditable(false);
+		pitchField.setBackground(DISABLED_COLOR);
+		pitchPanel.add(pitchField);
+		angleVisualizerPanel.add(pitchPanel);
+		
+		rollPanel = new JPanel();
+		rollPanel.setLayout(new BoxLayout(rollPanel, BoxLayout.Y_AXIS));
+		JLabel rollLabel = new JLabel("Roll");
+		rollLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		rollPanel.add(rollLabel);
+		rollPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		rollVisualizer = new AngleVisualizer(80);
+		rollPanel.add(rollVisualizer);
+		rollPanel.add(Box.createRigidArea(VERTICAL_SPACING_SMALL));
+		rollField = new JTextField();
+		rollField.setText("0.0");
+		rollField.setHorizontalAlignment(JTextField.CENTER);
+		rollField.setEditable(false);
+		rollField.setBackground(DISABLED_COLOR);
+		rollPanel.add(rollField);
+		angleVisualizerPanel.add(rollPanel);
+		
+		mainFrame.add(angleVisualizerPanel);
+		mainFrame.pack();
+		fixSize(yawField);
+		fixSize(pitchField);
+		fixSize(rollField);
 		mainFrame.setVisible(true);
 		
 		//Prompt for team number
@@ -293,9 +396,8 @@ public class BridgeMain {
 		connectingDialog.setVisible(true);
 	}
 	
-	public static void updateUI() {
+	public static void updateUI(boolean onArm, EulerOrientation orientation) {
 		//No need to worry about locked/unlocked or inverted/normal
-		boolean onArm = myo.isOnArm();
 		if(onArm != lastOnArm) {
 			if(onArm) {
 				onArmStatusIcon.setImage(iconOnArm);
@@ -309,7 +411,24 @@ public class BridgeMain {
 			lastOnArm = onArm;
 			topBarPanel.revalidate();
 			topBarPanel.repaint();
-			
+		}
+		
+		if(orientation.getYawDegrees() != yawVisualizer.getAngle()) {
+			yawField.setText(String.valueOf(roundToPlaces(orientation.getYawDegrees(), 2)));
+			//Values are negated because moving left causes a negative yaw
+			//This makes the angle visualizers more intuitive
+			yawVisualizer.updateAngleNoRepaint(-orientation.getYawDegrees());
+			yawPanel.repaint();
+		}
+		if(orientation.getPitchDegrees() != pitchVisualizer.getAngle()) {
+			pitchField.setText(String.valueOf(roundToPlaces(orientation.getPitchDegrees(), 2)));
+			pitchVisualizer.updateAngleNoRepaint(-orientation.getPitchDegrees());
+			pitchPanel.repaint();
+		}
+		if(orientation.getRollDegrees() != rollVisualizer.getAngle()) {
+			rollField.setText(String.valueOf(roundToPlaces(orientation.getRollDegrees(), 2)));
+			rollVisualizer.updateAngleNoRepaint(-orientation.getRollDegrees());
+			rollPanel.repaint();
 		}
 	}
 	
@@ -372,7 +491,12 @@ public class BridgeMain {
 		while(!exit) {
 			myo.runHub(100);
 			
-			updateUI();
+			boolean onArm = myo.isOnArm();
+			if(onArm) {
+				SwingUtilities.invokeLater(() -> {				
+					updateUI(onArm, invertAngles ? myo.getOrientation().negate() : myo.getOrientation());
+				});
+			}
 		}
 	}
 

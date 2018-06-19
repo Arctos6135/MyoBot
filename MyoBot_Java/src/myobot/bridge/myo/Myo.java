@@ -29,7 +29,7 @@ public class Myo {
 		}
 	}
 	
-	private native synchronized boolean __initialize(String appID);
+	private native boolean __initialize(String appID);
 	//Raw pointers to the Myo, Hub, and Data Collector
 	private long _myoHandle = 0;
 	private long _collectorHandle = 0;
@@ -80,8 +80,8 @@ public class Myo {
 		}
 	}
 	
-	private native synchronized void __runHub(int millis);
-	private native synchronized void __runHubOnce(int millis);
+	private native void __runHub(int millis);
+	private native void __runHubOnce(int millis);
 	private class HubThread extends Thread {
 		
 		int millis;
@@ -163,7 +163,7 @@ public class Myo {
 		__runHubOnce(millis);
 	}
 	
-	private native synchronized boolean __lock();
+	private native boolean __lock();
 	/**
 	 * Locks the Myo.
 	 * @throws MyoException If the Myo is not initialized, or locking failed
@@ -184,7 +184,7 @@ public class Myo {
 	 * Useful for allowing pose transitions.
 	 */
 	public static final int UNLOCK_TIMED = 1;
-	private native synchronized boolean __unlock(int type);
+	private native boolean __unlock(int type);
 	/**
 	 * Unlocks the Myo.
 	 * @param type The unlock type, {@link #UNLOCK_HOLD} or {@link #UNLOCK_TIMED}
@@ -204,7 +204,7 @@ public class Myo {
 		unlock(UNLOCK_HOLD);
 	}
 	
-	private native synchronized boolean __isLocked();
+	private native boolean __isLocked();
 	/**
 	 * Test for whether the Myo is locked.
 	 * @return Whether the Myo is locked
@@ -232,7 +232,7 @@ public class Myo {
 	 * after a short period of inactivity.
 	 */
 	public static final int LOCKING_POLICY_STANDARD = 1;
-	private native synchronized void __setLockingPolicy(int policy);
+	private native void __setLockingPolicy(int policy);
 	/**
 	 * Sets the locking policy of the Myo.
 	 * @param policy The locking policy, {@link #LOCKING_POLICY_NONE} or {@link #LOCKING_POLICY_STANDARD}.
@@ -256,7 +256,7 @@ public class Myo {
 	 * @throws MyoException If the Myo is not initialized
 	 * @throws IllegalArgumentException If the type of vibration is invalid
 	 */
-	private native synchronized void __vibrate(int type);
+	private native void __vibrate(int type);
 	public void vibrate(int type) {
 		if(type != VIBRATION_SHORT && type != VIBRATION_MEDIUM && type != VIBRATION_LONG) {
 			throw new IllegalArgumentException("Invalid vibration type");
@@ -265,7 +265,7 @@ public class Myo {
 		__vibrate(type);
 	}
 	
-	private native synchronized void __notifyUserAction();
+	private native void __notifyUserAction();
 	/**
 	 * Notifies the user that an event has been caused due to their action.
 	 * This will cause a short vibration in the Myo.
@@ -276,7 +276,7 @@ public class Myo {
 		__notifyUserAction();
 	}
 	
-	private native synchronized boolean __isOnArm();
+	private native boolean __isOnArm();
 	/**
 	 * Test for whether the Myo is on the arm of a person.
 	 * @return Whether the Myo is on an arm
@@ -299,7 +299,7 @@ public class Myo {
 	 * Unknown arm, if the Myo is not on an arm.
 	 */
 	public static final int ARM_UNKNOWN = 2;
-	private native synchronized int __getArm();
+	private native int __getArm();
 	/**
 	 * Retrieves the arm the Myo is on. The return values can be one of the following:
 	 * {@link #ARM_LEFT}, {@link #ARM_RIGHT}, or {@link #ARM_UNKNOWN}.
@@ -311,7 +311,7 @@ public class Myo {
 		return __getArm();
 	}
 	
-	private native synchronized void __updateRef();
+	private native void __updateRef();
 	/**
 	 * Updates the reference orientation to the current orientation of the Myo.
 	 * Any future orientation data will be relative to the reference.
@@ -323,7 +323,7 @@ public class Myo {
 	}
 	
 	private double result_yaw, result_pitch, result_roll;
-	private native synchronized void __getOrientation();
+	private native void __getOrientation();
 	/**
 	 * Gets the Euler angle orientation of the Myo.
 	 * @return The orientation of the Myo
@@ -342,7 +342,7 @@ public class Myo {
 	public static final int POSE_WAVEOUT = 4;
 	public static final int POSE_DOUBLETAP = 5;
 	public static final int POSE_UNKNOWN = 6;
-	private native synchronized int __getPose();
+	private native int __getPose();
 	/**
 	 * Gets the current Pose of the user. This can be one of the following:
 	 * <ul>
@@ -362,7 +362,7 @@ public class Myo {
 		return __getPose();
 	}
 	
-	private native synchronized void __cleanup();
+	private native void __cleanup();
 	/**
 	 * Cleans up the Myo.
 	 * @throws MyoException If the Myo is not initialized

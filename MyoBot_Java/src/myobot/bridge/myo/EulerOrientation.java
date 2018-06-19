@@ -29,4 +29,8 @@ public class EulerOrientation {
 	public double getRollDegrees() {
 		return Math.toDegrees(getRoll());
 	}
+	
+	public EulerOrientation negate() {
+		return new EulerOrientation(-yaw, -pitch, -roll);
+	}
 }

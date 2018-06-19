@@ -22,9 +22,11 @@ public class AngleVisualizer extends JPanel {
 	Image baseImage;
 	Image overlayImage;
 	double angle = 0;
-	public AngleVisualizer(int size) throws IOException {
+	double offset = 0;
+	public AngleVisualizer(int size, double offset) throws IOException {
 		super();
 		this.size = size;
+		this.offset = offset;
 		
 		InputStream imageStream = getClass().getResourceAsStream("/resources/ui/gyro/gyro_base.png");
 		baseImage = ImageIO.read(imageStream).getScaledInstance(size, size, Image.SCALE_SMOOTH);
@@ -37,6 +39,9 @@ public class AngleVisualizer extends JPanel {
 		setMinimumSize(new Dimension(size, size));
 		setMaximumSize(new Dimension(size, size));
 	}
+	public AngleVisualizer(int size) throws IOException {
+		this(size, 0);
+	}
 	
 	public double getAngle() {
 		return angle;
@@ -44,6 +49,9 @@ public class AngleVisualizer extends JPanel {
 	public void updateAngle(double newAngle) {
 		angle = newAngle;
 		repaint();
+	}
+	public void updateAngleNoRepaint(double newAngle) {
+		angle = newAngle;
 	}
 	
 	@Override
@@ -56,7 +64,7 @@ public class AngleVisualizer extends JPanel {
 		AffineTransform old = graphics.getTransform();
 		
 		graphics.translate(size / 2, size / 2);
-		graphics.rotate(Math.toRadians(angle));
+		graphics.rotate(Math.toRadians(angle + offset));
 		graphics.drawImage(overlayImage, -size / 2, -size / 2, null);
 		
 		graphics.setTransform(old);
