@@ -16,6 +16,7 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
@@ -139,7 +140,9 @@ public class BridgeMain {
 	static JDialog connectingDialog;
 	//The loading dialog
 	static JDialog loadingDialog;
+	static JLabel loadingStatusLabel;
 	//Different icon images
+	static Image imgMyoBotIcon;
 	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
 	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgTurnCW, imgTurnCCW, imgNoMovement;
@@ -216,6 +219,8 @@ public class BridgeMain {
 		imgNoMovement = loadUIImage("no_movement.png", DIRECTION_ICON_SIZE);
 		imgTurnCW = loadUIImage("arrow_rotate_right.png", DIRECTION_ICON_SIZE);
 		imgTurnCCW = loadUIImage("arrow_rotate_left.png", DIRECTION_ICON_SIZE);
+		
+		imgMyoBotIcon = loadUIImage("myobot_icon.png", new Dimension(512, 512));
 	}
 	/**
 	 * Sets up the Look And Feel.
@@ -263,49 +268,73 @@ public class BridgeMain {
 	
 	public static void constructAndShowUI() throws IOException {
 		setupLookAndFeel();
-		//"Connecting to Myo" Dialog
+
 		loadingDialog = new JDialog();
 		loadingDialog.setAlwaysOnTop(true);
+		loadingDialog.setResizable(false);
+		loadingDialog.setUndecorated(true);
 		loadingDialog.setTitle("Loading...");
 		loadingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-		JPanel loadingDialogPanel = new JPanel();
-		loadingDialogPanel.setBorder(BorderFactory.createLineBorder(new Color(10, 10, 10), 1, true));
-		loadingDialogPanel.setLayout(new BorderLayout());
-		JLabel l1 = new JLabel("Loading User Interface...");
-		l1.setFont(l1.getFont().deriveFont(16.0f));
-		l1.setHorizontalAlignment(JLabel.CENTER);
-		l1.setVerticalAlignment(JLabel.CENTER);
-		//Create an empty border around the label
-		l1.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
-		loadingDialogPanel.add(l1, BorderLayout.CENTER);
-		JProgressBar loadingProgress = new JProgressBar();
-		loadingProgress.setPreferredSize(new Dimension(350, 30));
-		loadingProgress.setIndeterminate(true);
-		//The progress bar has its own panel, because directly adding a border to it doesn't work
-		JPanel progressBarPanel1 = new JPanel();
-		progressBarPanel1.add(loadingProgress);
-		progressBarPanel1.setBorder(BorderFactory.createEmptyBorder(0, 25, 20, 25));
-		loadingDialogPanel.add(progressBarPanel1, BorderLayout.PAGE_END);
-		loadingDialog.setContentPane(loadingDialogPanel);
-		loadingDialog.setUndecorated(true);
+		JPanel loadingPanel = new JPanel();
+		loadingPanel.setBorder(BorderFactory.createLineBorder(new Color(10, 10, 10), 1, true));
+		loadingPanel.setLayout(new GridBagLayout());
+		JLabel loadingMainLabel = new JLabel("Loading User Interface...");
+		loadingMainLabel.setFont(loadingMainLabel.getFont().deriveFont(18.0f));
+		loadingMainLabel.setHorizontalAlignment(JLabel.CENTER);
+		loadingMainLabel.setVerticalAlignment(JLabel.CENTER);
+		loadingMainLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 0;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1.0;
+		c.weighty =	1.0;
+		loadingPanel.add(loadingMainLabel, c);
+		loadingStatusLabel = new JLabel("Loading Images...");
+		loadingStatusLabel.setFont(loadingStatusLabel.getFont().deriveFont(10.0f));
+		loadingStatusLabel.setHorizontalAlignment(JLabel.CENTER);
+		loadingStatusLabel.setVerticalAlignment(JLabel.BOTTOM);
+		c.gridy = 1;
+		c.weighty = 0.2;
+		loadingPanel.add(loadingStatusLabel, c);
+		JProgressBar loadingProgressBar = new JProgressBar();
+		loadingProgressBar.setIndeterminate(true);
+		loadingProgressBar.setPreferredSize(new Dimension(350, 30));
+		JPanel loadingProgressBarPanel = new JPanel();
+		loadingProgressBarPanel.add(loadingProgressBar);
+		loadingProgressBarPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 20));
+		c.gridy = 2;
+		c.weighty = 0.5;
+		loadingPanel.add(loadingProgressBarPanel, c);
+		
+		loadingDialog.setContentPane(loadingPanel);
 		loadingDialog.pack();
-		//Center the dialog
 		loadingDialog.setLocationRelativeTo(null);
 		loadingDialog.setVisible(true);
 		
-		SwingWorker<Void, Void> uiWorker = new SwingWorker<Void, Void>() {
+		SwingWorker<Void, String> uiWorker = new SwingWorker<Void, String>() {
 			
 			@Override
 			protected Void doInBackground() throws Exception {
 				loadImages();
+				publish("Constructing Dialogs...");
 				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks) {
+				loadingStatusLabel.setText(chunks.get(chunks.size() - 1));
+				loadingStatusLabel.paintImmediately(loadingStatusLabel.getVisibleRect());
 			}
 			
 			protected void done() {
 				try {
-					mainFrame = new JFrame("MyoBot Control Center");
-					mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-					mainFrame.setLayout(new GridBagLayout());
+					//Initialize prompt for team number
+					promptPanel = new JPanel();
+					promptPanel.setLayout(new BorderLayout());
+					promptPanel.add(new JLabel("Enter FRC Team Number, or 0 for Dry-Run:"), BorderLayout.CENTER);
+					teamNumber = new JTextField();
+					promptPanel.add(teamNumber, BorderLayout.PAGE_END);
 					
 					//"Connecting to Myo" Dialog
 					connectingDialog = new JDialog(mainFrame, "Please Wait...");
@@ -336,8 +365,16 @@ public class BridgeMain {
 					//Center the dialog
 					connectingDialog.setLocationRelativeTo(null);
 					
-					//Top bar with the icons and buttons
+					loadingStatusLabel.setText("Constructing Main Window...");
+					loadingStatusLabel.paintImmediately(loadingStatusLabel.getVisibleRect());
+					
+					mainFrame = new JFrame("MyoBot Control Center");
+					mainFrame.setIconImage(imgMyoBotIcon);
+					mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					mainFrame.setLayout(new GridBagLayout());
 					mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
+					
+					//Top bar with the icons and buttons
 					topBarPanel = new JPanel();
 					//Construct ImageIcons
 					unlockStatusIcon = new ImageIcon(imgLocked);
@@ -652,13 +689,10 @@ public class BridgeMain {
 					fixSize(maxDriveSpeedField);
 					fixSize(maxElevatorSpeedField);
 					fixSize(maxIntakeSpeedField);
-			
-					//Initialize prompt for team number
-					promptPanel = new JPanel();
-					promptPanel.setLayout(new BorderLayout());
-					promptPanel.add(new JLabel("Enter FRC Team Number, or 0 for Dry-Run:"), BorderLayout.CENTER);
-					teamNumber = new JTextField();
-					promptPanel.add(teamNumber, BorderLayout.PAGE_END);
+					
+					loadingStatusLabel.setText("Initializing NetworkTables...");
+					loadingStatusLabel.paintImmediately(loadingStatusLabel.getVisibleRect());
+					
 					//Initialize NT
 					ntInstance = NetworkTableInstance.getDefault();
 					ntTable = ntInstance.getTable("myobot");
