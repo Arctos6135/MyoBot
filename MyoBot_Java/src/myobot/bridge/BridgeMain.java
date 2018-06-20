@@ -78,8 +78,6 @@ public class BridgeMain {
 	static double driveMaxSpeed = 0.5, elevatorMaxSpeed = 0.6, intakeMaxSpeed = 0.7;
 	static double leftMotorSpeed, rightMotorSpeed, elevatorSpeed, intakeSpeed;
 	
-	static boolean myoIsUnlocked = false;
-	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
 	static boolean invertAngles = false;
@@ -135,6 +133,7 @@ public class BridgeMain {
 	//Last time's status
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
+	static boolean lastUnlocked = false;
 	static int lastPose = Myo.POSE_REST;
 	//The "connecting to myo" dialog
 	static JDialog connectingDialog;
@@ -386,14 +385,12 @@ public class BridgeMain {
 					Runnable lockUnlockMyo = () -> {
 						if(myo.isLocked()) {
 							myo.unlock();
-							myoIsUnlocked = true;
 							lockUnlockButton.setText("Lock");
 							unlockStatusIcon.setImage(imgUnlocked);
 							unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
 						}
 						else {
 							myo.lock();
-							myoIsUnlocked = false;
 							lockUnlockButton.setText("Unlock");
 							unlockStatusIcon.setImage(imgLocked);
 							unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
@@ -734,9 +731,9 @@ public class BridgeMain {
 		uiWorker.execute();
 	}
 	
-	public static void updateUI(boolean onArm, EulerOrientation orientation, int pose) {
+	public static void updateUI(boolean onArm, boolean unlocked, EulerOrientation orientation, int pose) {
 		//No need to worry about locked/unlocked or inverted/normal
-		if(onArm != lastOnArm) {
+		if(onArm != lastOnArm) {//TODO
 			if(onArm) {
 				onArmStatusIcon.setImage(imgOnArm);
 				onArmStatusLabel.setToolTipText(TOOLTIP_ONARM);
@@ -760,6 +757,22 @@ public class BridgeMain {
 			}
 			
 			lastOnArm = onArm;
+			topBarPanel.repaint();
+		}
+		
+		if(unlocked != lastUnlocked) {
+			if(unlocked) {
+				unlockStatusIcon.setImage(imgUnlocked);
+				unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
+				lockUnlockButton.setText("Lock");
+			}
+			else {
+				unlockStatusIcon.setImage(imgLocked);
+				unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
+				lockUnlockButton.setText("Unlock");
+			}
+			
+			lastUnlocked = unlocked;
 			topBarPanel.repaint();
 		}
 		
@@ -1018,10 +1031,11 @@ public class BridgeMain {
 			myo.runHub(100);
 			
 			boolean onArm = myo.isOnArm();
+			boolean myoUnlocked = myo.isUnlocked();
 			EulerOrientation orientation = invertAngles ? myo.getOrientation().negate() : myo.getOrientation();
 			int pose = myo.getPose();
 			
-			if(onArm && myoIsUnlocked) {
+			if(onArm && myoUnlocked) {
 				computeSpeeds(orientation, pose);
 			}
 			else {
@@ -1030,7 +1044,7 @@ public class BridgeMain {
 			updateNT();
 			
 			SwingUtilities.invokeLater(() -> {				
-				updateUI(onArm, orientation, pose);
+				updateUI(onArm, myoUnlocked, orientation, pose);
 			});
 		}
 	}
