@@ -84,7 +84,12 @@ public class DataCollector extends DeviceListener {
 	public void onOrientationData(Myo myo, long timestamp, Quaternion quat) {
 		orientationRaw = quat;
 		
-		orientation = refOrientation.multiply(orientationRaw);
+		if(refOrientation != null) {
+			orientation = refOrientation.multiply(orientationRaw);
+		}
+		else {
+			orientation = quat;
+		}
 		
 		roll = Math.atan2(2.0f * (orientation.w() * orientation.x() + orientation.y() * orientation.z()),
 				1.0f - 2.0f * (orientation.x() * orientation.x() + orientation.y() * orientation.y()));
