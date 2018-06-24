@@ -15,6 +15,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -89,6 +90,7 @@ public class BridgeMain {
 	static Hub myoHub = null;
 	static Myo myo;
 	static DataCollector collector = new DataCollector();
+	static boolean paused = false;
 
 	//Main JFrame
 	static JFrame mainFrame;
@@ -375,7 +377,8 @@ public class BridgeMain {
 					
 					mainFrame = new JFrame("MyoBot Control Center");
 					mainFrame.setIconImage(imgMyoBotIcon);
-					mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					//Handled later
+					mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 					mainFrame.setLayout(new GridBagLayout());
 					mainFrame.setLayout(new BoxLayout(mainFrame.getContentPane(), BoxLayout.Y_AXIS));
 					
@@ -912,6 +915,8 @@ public class BridgeMain {
 		if(orientation.getPitchDegrees() > -20) {
 			elevatorSpeed = 0;
 			double drivingSpeed = Math.min(45, orientation.getPitchDegrees() + 20) / 45.0;
+			//Square to make small movements easier to control
+			drivingSpeed *= drivingSpeed;
 			
 			if(!drivingForwards) {
 				drivingSpeed = -drivingSpeed;
@@ -920,6 +925,8 @@ public class BridgeMain {
 			double turningSpeed = 0;
 			if(Math.abs(orientation.getYawDegrees()) >= 15) {
 				turningSpeed = Math.min(70, Math.abs(orientation.getYawDegrees()) - 15) / 70;
+				//Square the turning speed to make small turns easier to control
+				turningSpeed *= turningSpeed;
 				//Turning left
 				if(orientation.getYawDegrees() > 0) {
 					turningSpeed = -turningSpeed;
@@ -983,6 +990,10 @@ public class BridgeMain {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
+				ntDriveLeft.forceSetDouble(0);
+				ntDriveRight.forceSetDouble(0);
+				ntElevator.forceSetDouble(0);
+				ntIntake.forceSetDouble(0);
 				if(myoHub != null) {
 					myo.lock();
 					myoHub.release();
@@ -1032,6 +1043,18 @@ public class BridgeMain {
 		//Add close listener to know when to exit
 		mainFrame.addWindowListener(new WindowAdapter() {
 			@Override
+			public void windowClosing(WindowEvent e) {
+				paused = true;
+				
+				int ret = JOptionPane.showConfirmDialog(mainFrame, "Are you sure you want to exit the MyoBot Control Center?", "Confirm Exit", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+				if(ret == JOptionPane.YES_OPTION) {
+					mainFrame.dispose();
+				}
+				else {
+					paused = false;
+				}
+			}
+			@Override
 			public void windowClosed(WindowEvent e) {
 				exit = true;
 			}
@@ -1045,7 +1068,7 @@ public class BridgeMain {
 			EulerOrientation orientation = invertAngles ? collector.getOrienationEuler().negate() : collector.getOrienationEuler();
 			Pose pose = collector.getPose();
 			
-			if(onArm && myoUnlocked) {
+			if(onArm && myoUnlocked && !paused) {
 				computeSpeeds(orientation, pose);
 			}
 			else {
@@ -1053,9 +1076,16 @@ public class BridgeMain {
 			}
 			updateNT();
 			
-			SwingUtilities.invokeLater(() -> {				
-				updateUI(onArm, myoUnlocked, orientation, pose);
-			});
+			if(!paused) {
+				try {
+					SwingUtilities.invokeAndWait(() -> {				
+						updateUI(onArm, myoUnlocked, orientation, pose);
+					});
+				} 
+				catch (InvocationTargetException e1) {
+					e1.printStackTrace();
+				}
+			}
 		}
 	}
 
