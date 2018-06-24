@@ -7,6 +7,7 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -392,6 +393,11 @@ public class BridgeMain {
 					//Store these lambdas as runnables
 					//Reused later
 					Runnable lockUnlockMyo = () -> {
+						//If the Myo is not on an arm, locking and unlocking should do nothing
+						if(!collector.onArm()) {
+							Toolkit.getDefaultToolkit().beep();
+							return;
+						}
 						if(!collector.isUnlocked()) {
 							myo.unlock(Myo.UnlockType.unlockHold);
 							lockUnlockButton.setText("Lock");
