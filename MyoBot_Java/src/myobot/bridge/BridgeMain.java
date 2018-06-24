@@ -43,12 +43,16 @@ import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import com.thalmic.myo.Hub;
+import com.thalmic.myo.Myo;
+import com.thalmic.myo.MyoException;
+import com.thalmic.myo.Pose;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import myobot.bridge.myo.DataCollector;
 import myobot.bridge.myo.EulerOrientation;
-import myobot.bridge.myo.Myo;
-import myobot.bridge.myo.MyoException;
 import myobot.bridge.ui.AngleVisualizer;
 import myobot.bridge.ui.Speedometer;
 
@@ -82,7 +86,9 @@ public class BridgeMain {
 	//This is for when the Myo is worn upside down
 	static boolean invertAngles = false;
 	
-	static final Myo myo = new Myo();
+	static Hub myoHub = null;
+	static Myo myo;
+	static DataCollector collector = new DataCollector();
 
 	//Main JFrame
 	static JFrame mainFrame;
@@ -134,7 +140,7 @@ public class BridgeMain {
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
 	static boolean lastUnlocked = false;
-	static int lastPose = Myo.POSE_REST;
+	static Pose lastPose = Pose.rest;
 	//The "connecting to myo" dialog
 	static JDialog connectingDialog;
 	//The loading dialog
@@ -383,8 +389,8 @@ public class BridgeMain {
 					//Store these lambdas as runnables
 					//Reused later
 					Runnable lockUnlockMyo = () -> {
-						if(myo.isLocked()) {
-							myo.unlock();
+						if(!collector.isUnlocked()) {
+							myo.unlock(Myo.UnlockType.unlockHold);
 							lockUnlockButton.setText("Lock");
 							unlockStatusIcon.setImage(imgUnlocked);
 							unlockStatusLabel.setToolTipText(TOOLTIP_UNLOCKED);
@@ -462,7 +468,7 @@ public class BridgeMain {
 					Action updateRefAction = new AbstractAction("Reset Orientation") {
 						@Override
 						public void actionPerformed(ActionEvent e) {
-							myo.updateReferenceOrientation();
+							collector.setRefOrientation(collector.getRawOrientation());
 						}
 					};
 					updateRefButton.setAction(updateRefAction);
@@ -731,9 +737,9 @@ public class BridgeMain {
 		uiWorker.execute();
 	}
 	
-	public static void updateUI(boolean onArm, boolean unlocked, EulerOrientation orientation, int pose) {
+	public static void updateUI(boolean onArm, boolean unlocked, EulerOrientation orientation, Pose pose) {
 		//No need to worry about locked/unlocked or inverted/normal
-		if(onArm != lastOnArm) {//TODO
+		if(onArm != lastOnArm) {
 			if(onArm) {
 				onArmStatusIcon.setImage(imgOnArm);
 				onArmStatusLabel.setToolTipText(TOOLTIP_ONARM);
@@ -802,28 +808,28 @@ public class BridgeMain {
 			Image imgPose;
 			String poseName;
 			switch(pose) {
-			case Myo.POSE_FIST:
+			case fist:
 				imgPose = imgFist;
 				poseName = "Fist";
 				break;
-			case Myo.POSE_SPREADFINGERS:
+			case fingersSpread:
 				imgPose = imgSpreadFingers;
 				poseName = "Spread Fingers";
 				break;
-			case Myo.POSE_WAVEIN:
+			case waveIn:
 				imgPose = imgWaveIn;
 				poseName = "Wave In";
 				break;
-			case Myo.POSE_WAVEOUT:
+			case waveOut:
 				imgPose = imgWaveOut;
 				poseName = "Wave Out";
 				break;
-			case Myo.POSE_DOUBLETAP:
+			case doubleTap:
 				imgPose = imgDoubleTap;
 				poseName = "Double Tap";
 				break;
-			case Myo.POSE_REST:
-			case Myo.POSE_UNKNOWN:
+			case rest:
+			case unknown:
 			default:
 				imgPose = imgNoPose;
 				poseName = "Rest/Unknown";
@@ -898,9 +904,9 @@ public class BridgeMain {
 	/**
 	 * Computes the speeds that are to be sent to the robot based on the Myo's orientation and pose.
 	 */
-	public static void computeSpeeds(EulerOrientation orientation, int pose) {
+	public static void computeSpeeds(EulerOrientation orientation, Pose pose) {
 
-		if(pose != Myo.POSE_DOUBLETAP && doubleTapping) {
+		if(pose != Pose.doubleTap && doubleTapping) {
 			doubleTapping = false;
 		}
 		if(orientation.getPitchDegrees() > -20) {
@@ -925,34 +931,34 @@ public class BridgeMain {
 			rightMotorSpeed = drivingSpeed * driveMaxSpeed - turningSpeed * driveMaxSpeed;
 			
 			intakeSpeed = 0;
-			if(pose == Myo.POSE_FIST) {
+			if(pose == Pose.fist) {
 				intakeSpeed = intakeMaxSpeed;
 			}
-			else if(pose == Myo.POSE_SPREADFINGERS) {
+			else if(pose == Pose.fingersSpread) {
 				intakeSpeed = -intakeMaxSpeed;
 			}
 		}
-		else if(pose == Myo.POSE_FIST) {
+		else if(pose == Pose.fist) {
 			intakeSpeed = intakeMaxSpeed;
 			elevatorSpeed = 0;
 			leftMotorSpeed = rightMotorSpeed = 0;
 		}
-		else if(pose == Myo.POSE_SPREADFINGERS) {
+		else if(pose == Pose.fingersSpread) {
 			intakeSpeed = -intakeMaxSpeed;
 			elevatorSpeed = 0;
 			leftMotorSpeed = rightMotorSpeed = 0;
 		}
-		else if(pose == Myo.POSE_WAVEOUT) {
+		else if(pose == Pose.waveOut) {
 			elevatorSpeed = -elevatorMaxSpeed;
 			intakeSpeed = 0;
 			leftMotorSpeed = rightMotorSpeed = 0;
 		}
-		else if(pose == Myo.POSE_WAVEIN) {
+		else if(pose == Pose.waveIn) {
 			elevatorSpeed = elevatorMaxSpeed;
 			intakeSpeed = 0;
 			leftMotorSpeed = rightMotorSpeed = 0;
 		}
-		else if(pose == Myo.POSE_DOUBLETAP && !doubleTapping) {
+		else if(pose == Pose.doubleTap && !doubleTapping) {
 			drivingForwards = !drivingForwards;
 			doubleTapping = true;
 			myo.notifyUserAction();
@@ -977,8 +983,9 @@ public class BridgeMain {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				if(myo.isInitialized()) {
-					myo.cleanup();
+				if(myoHub != null) {
+					myo.lock();
+					myoHub.release();
 				}
 			}
 		});
@@ -1006,7 +1013,10 @@ public class BridgeMain {
 		
 		//Initialize Myo
 		try {
-			myo.init("org.usfirst.frc.team6135.MyoBot");
+			myoHub = new Hub("org.usfirst.frc.team6135.MyoBot");
+			myo = myoHub.waitForMyo(10000);
+			myoHub.addListener(collector);
+			myoHub.setLockingPolicy(Hub.LockingPolicy.lockingPolicyNone);
 		}
 		catch(MyoException e) {
 			SwingUtilities.invokeLater(() -> {
@@ -1014,7 +1024,7 @@ public class BridgeMain {
 				System.exit(0);
 			});
 		}
-		myo.setLockingPolicy(Myo.LOCKING_POLICY_NONE);
+		
 		//Dispose of the dialog
 		connectingDialog.setVisible(false);
 		connectingDialog.dispose();
@@ -1028,12 +1038,12 @@ public class BridgeMain {
 		});
 		
 		while(!exit) {
-			myo.runHub(100);
+			myoHub.run(100);
 			
-			boolean onArm = myo.isOnArm();
-			boolean myoUnlocked = myo.isUnlocked();
-			EulerOrientation orientation = invertAngles ? myo.getOrientation().negate() : myo.getOrientation();
-			int pose = myo.getPose();
+			boolean onArm = collector.onArm();
+			boolean myoUnlocked = collector.isUnlocked();
+			EulerOrientation orientation = invertAngles ? collector.getOrienationEuler().negate() : collector.getOrienationEuler();
+			Pose pose = collector.getPose();
 			
 			if(onArm && myoUnlocked) {
 				computeSpeeds(orientation, pose);
