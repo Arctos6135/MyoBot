@@ -4,6 +4,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
@@ -14,6 +16,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -70,6 +73,9 @@ public class BridgeMain {
 	public static final String TOOLTIP_OFFARM = "<html>Myo is not on arm.</html>";
 	public static final String TOOLTIP_NORMAL = "<html>Orientation is not inverted.<br>Click to invert.</html>";
 	public static final String TOOLTIP_INVERTED = "<html>Orientation is inverted.<br>Click to return to normal.</html>";
+	public static final String TOOLTIP_1_0 = "<html>Controls: Version 1.0<br>Click to cycle through all supported controls versions.</html>";
+	public static final String TOOLTIP_2_0 = "<html>Controls: Version 2.0<br>Click to cycle through all supported controls versions.</html>";
+	public static final String TOOLTIP_2_1 = "<html>Controls: Version 2.1<br>Click to cycle through all supported controls versions.</html>";
 	public static final int GYRO_SIZE = 80;
 	public static final int SPEEDOMETER_SIZE = 80;
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
@@ -98,12 +104,12 @@ public class BridgeMain {
 	//Panel that stores the top status icons and buttons
 	static JPanel topBarPanel;
 	//Buttons in the top bar
-	static JButton lockUnlockButton, invertButton, updateRefButton;
+	static JButton lockUnlockButton, invertButton, updateRefButton, changeControlsModeButton;
 	//Different icons
-	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon;
+	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon, controlsModeIcon;
 	static ImageIcon poseIcon;
 	//Labels for the icons
-	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel;
+	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel, controlsModeLabel;
 	//Orientation components
 	static AngleVisualizer yawVisualizer, pitchVisualizer, rollVisualizer;
 	static JPanel yawPanel, pitchPanel, rollPanel;
@@ -151,9 +157,51 @@ public class BridgeMain {
 	static JLabel loadingStatusLabel;
 	//Different icon images
 	static Image imgMyoBotIcon;
-	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted;
+	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted, imgControls1_0, imgControls2_0, imgControls2_1;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
 	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgTurnCW, imgTurnCCW, imgNoMovement;
+	
+	enum ControlsMode {
+		V1_0, V2_0, V2_1;
+		
+		public Image getIcon() {
+			switch(this) {
+			case V1_0:
+				return imgControls1_0;
+			case V2_0:
+				return imgControls2_0;
+			case V2_1:
+				return imgControls2_1;
+			default:
+				return null;
+			}
+		}
+		public String getTooltip() {
+			switch(this) {
+			case V1_0:
+				return TOOLTIP_1_0;
+			case V2_0:
+				return TOOLTIP_2_0;
+			case V2_1:
+				return TOOLTIP_2_1;
+			default:
+				return null;
+			}
+		}
+		public ControlsMode getNext() {
+			switch(this) {
+			case V1_0:
+				return V2_0;
+			case V2_0:
+				return V2_1;
+			case V2_1:
+				return V1_0;
+			default:
+				return null;
+			}
+		}
+	}
+	static ControlsMode controlsMode = ControlsMode.V2_1;
 	
 	//Flag that will be set to true once the UI is up
 	//Used to make sure the main thread does not run ahead of the EDT
@@ -177,6 +225,17 @@ public class BridgeMain {
 		Image img = ImageIO.read(stream).getScaledInstance(size.width, size.height, Image.SCALE_SMOOTH);
 		stream.close();
 		return img;
+	}
+	public static Image loadControlsVersionImage(String version) throws IOException {
+		InputStream stream = BridgeMain.class.getClass().getResourceAsStream("/resources/ui/icons/control_mode_base.png");
+		BufferedImage img = ImageIO.read(stream);
+		stream.close();
+		Font versionFont = new Font("Arial", Font.PLAIN, 90);
+		Graphics2D g = (Graphics2D) img.getGraphics();
+		g.setPaint(Color.BLACK);
+		g.setFont(versionFont);
+		g.drawString(version, 110, 80);
+		return img.getScaledInstance(SMALL_ICON_SIZE.width, SMALL_ICON_SIZE.height, Image.SCALE_SMOOTH);
 	}
 	/**
 	 * Rounds a number to a certain number of decimal places.
@@ -210,6 +269,10 @@ public class BridgeMain {
 		imgOffArm = loadUIImage("not_on_arm.png", SMALL_ICON_SIZE);
 		imgInverted = loadUIImage("inverted.png", SMALL_ICON_SIZE);
 		imgNonInverted = loadUIImage("not_inverted.png", SMALL_ICON_SIZE);
+		
+		imgControls1_0 = loadControlsVersionImage("1.0");
+		imgControls2_0 = loadControlsVersionImage("2.0");
+		imgControls2_1 = loadControlsVersionImage("2.1");
 		
 		imgFist = loadUIImage("fist.png", POSE_ICON_SIZE);
 		imgSpreadFingers = loadUIImage("spread_fingers.png", POSE_ICON_SIZE);
@@ -389,6 +452,7 @@ public class BridgeMain {
 					unlockStatusIcon = new ImageIcon(imgLocked);
 					onArmStatusIcon = new ImageIcon(imgOffArm);
 					invertStatusIcon = new ImageIcon(invertAngles ? imgInverted : imgNonInverted);
+					controlsModeIcon = new ImageIcon(controlsMode.getIcon());
 					topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 5));
 					//Store these lambdas as runnables
 					//Reused later
@@ -421,6 +485,24 @@ public class BridgeMain {
 						topBarPanel.revalidate();
 						topBarPanel.repaint();
 					};
+					Runnable changeControlsMode = () -> {
+						controlsMode = controlsMode.getNext();
+						
+						controlsModeIcon.setImage(controlsMode.getIcon());
+						controlsModeLabel.setToolTipText(controlsMode.getTooltip());
+						
+						if(collector.isUnlocked() && collector.onArm()) {
+							myo.lock();
+							lockUnlockButton.setText("Unlock");
+							unlockStatusIcon.setImage(imgLocked);
+							unlockStatusLabel.setToolTipText(TOOLTIP_LOCKED);
+						}
+						drivingForwards = true;
+						doubleTapping = false;
+						
+						topBarPanel.revalidate();
+						topBarPanel.repaint();
+					};
 					
 					//Add our ImageIcons to the top bar
 					unlockStatusLabel = new JLabel(unlockStatusIcon);
@@ -437,7 +519,7 @@ public class BridgeMain {
 					onArmStatusLabel.setToolTipText(TOOLTIP_OFFARM);
 					topBarPanel.add(onArmStatusLabel);
 					invertStatusLabel = new JLabel(invertStatusIcon);
-					invertStatusLabel.setToolTipText(TOOLTIP_NORMAL);
+					invertStatusLabel.setToolTipText(invertAngles ? TOOLTIP_INVERTED : TOOLTIP_NORMAL);
 					invertStatusLabel.addMouseListener(new MouseAdapter() {
 						@Override
 						public void mouseClicked(MouseEvent e) {
@@ -445,6 +527,15 @@ public class BridgeMain {
 						}
 					});
 					topBarPanel.add(invertStatusLabel);
+					controlsModeLabel = new JLabel(controlsModeIcon);
+					controlsModeLabel.setToolTipText(controlsMode.getTooltip());
+					controlsModeLabel.addMouseListener(new MouseAdapter() {
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							changeControlsMode.run();
+						}
+					});
+					topBarPanel.add(controlsModeLabel);
 					
 					//Buttons have their own sub-panel so they can have different gaps
 					JPanel topButtonsPanel = new JPanel();
@@ -483,9 +574,15 @@ public class BridgeMain {
 					updateRefButton.setAction(updateRefAction);
 					updateRefAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
 					
+					changeControlsModeButton = new JButton("Change Controls Version");
+					changeControlsModeButton.addActionListener(e -> {
+						changeControlsMode.run();
+					});
+					
 					topButtonsPanel.add(lockUnlockButton);
 					topButtonsPanel.add(invertButton);
 					topButtonsPanel.add(updateRefButton);
+					topButtonsPanel.add(changeControlsModeButton);
 					topBarPanel.add(topButtonsPanel);
 					GridBagConstraints c = new GridBagConstraints();
 					c.gridx = 0;
