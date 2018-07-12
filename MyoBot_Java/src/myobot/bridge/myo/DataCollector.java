@@ -48,6 +48,9 @@ public class DataCollector extends DeviceListener {
 	public void setRefOrientation(Quaternion ref) {
 		refOrientation = ref.conjugate();
 	}
+	public Arm getArm() {
+		return arm;
+	}
 	
 	@Override
 	public void onUnpair(Myo myo, long timestamp) {

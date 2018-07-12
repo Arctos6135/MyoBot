@@ -48,6 +48,7 @@ import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import com.thalmic.myo.Arm;
 import com.thalmic.myo.Hub;
 import com.thalmic.myo.Myo;
 import com.thalmic.myo.MyoException;
@@ -1121,6 +1122,43 @@ public class BridgeMain {
 			}
 			else {
 				elevatorSpeed = intakeSpeed = leftMotorSpeed = rightMotorSpeed = 0;
+			}
+		}
+		else if(controlsMode == ControlsMode.V1_0) {
+			switch(pose) {
+			case fist:
+				leftMotorSpeed = rightMotorSpeed = driveMaxSpeed;
+				intakeSpeed = elevatorSpeed = 0;
+				break;
+			case fingersSpread:
+				leftMotorSpeed = rightMotorSpeed = -driveMaxSpeed;
+				intakeSpeed = elevatorSpeed = 0;
+				break;
+			case waveIn:
+				intakeSpeed = elevatorSpeed = 0;
+				if(collector.getArm() == Arm.armRight || collector.getArm() == Arm.armUnknown) {
+					leftMotorSpeed = -driveMaxSpeed;
+					rightMotorSpeed = driveMaxSpeed;
+				}
+				else {
+					leftMotorSpeed = driveMaxSpeed;
+					rightMotorSpeed = -driveMaxSpeed;
+				}
+				break;
+			case waveOut:
+				intakeSpeed = elevatorSpeed = 0;
+				if(collector.getArm() == Arm.armRight || collector.getArm() == Arm.armUnknown) {
+					leftMotorSpeed = driveMaxSpeed;
+					rightMotorSpeed = -driveMaxSpeed;
+				}
+				else {
+					leftMotorSpeed = -driveMaxSpeed;
+					rightMotorSpeed = driveMaxSpeed;
+				}
+				break;
+			default:
+				leftMotorSpeed = rightMotorSpeed = intakeSpeed = elevatorSpeed = 0;
+				break;
 			}
 		}
 	}
