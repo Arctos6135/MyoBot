@@ -477,7 +477,8 @@ public class BridgeMain {
 					Action updateRefAction = new AbstractAction("Reset Orientation") {
 						@Override
 						public void actionPerformed(ActionEvent e) {
-							collector.setRefOrientation(collector.getRawOrientation());
+							if(myo != null)
+								collector.setRefOrientation(collector.getRawOrientation());
 						}
 					};
 					updateRefButton.setAction(updateRefAction);
@@ -717,20 +718,22 @@ public class BridgeMain {
 					loadingDialog.dispose();
 					mainFrame.setVisible(true);
 					
-					boolean done = false;
-					while(!done) {
-						JOptionPane.showMessageDialog(mainFrame, promptPanel, "Enter Team Number", JOptionPane.PLAIN_MESSAGE);
-						try {
-							int team = Integer.parseInt(teamNumber.getText());
-							if(team != 0) {
-								ntInstance.setUpdateRate(1.0 / 15);
-								ntInstance.startClientTeam(team);
-								ntInstance.startDSClient();
+					if(connectToNT) {
+						boolean done = false;
+						while(!done) {
+							JOptionPane.showMessageDialog(mainFrame, promptPanel, "Enter Team Number", JOptionPane.PLAIN_MESSAGE);
+							try {
+								int team = Integer.parseInt(teamNumber.getText());
+								if(team != 0) {
+									ntInstance.setUpdateRate(1.0 / 15);
+									ntInstance.startClientTeam(team);
+									ntInstance.startDSClient();
+								}
+								done = true;
 							}
-							done = true;
-						}
-						catch(NumberFormatException nfe) {
-							JOptionPane.showMessageDialog(mainFrame, "Please enter a valid team number.", "Error", JOptionPane.ERROR_MESSAGE);
+							catch(NumberFormatException nfe) {
+								JOptionPane.showMessageDialog(mainFrame, "Please enter a valid team number.", "Error", JOptionPane.ERROR_MESSAGE);
+							}
 						}
 					}
 					
@@ -990,19 +993,39 @@ public class BridgeMain {
 		ntIntake.forceSetDouble(intakeSpeed);
 	}
 	
+	static boolean connectToMyo = true, connectToNT = true;
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
+		
+		//Debug flags
+		for(String s : args) {
+			switch (s) {
+			case "--no-myo":
+				connectToMyo = false;
+				connectToNT = false;
+				break;
+			case "--no-nt":
+				connectToNT = false;
+				break;
+			default:
+				break;
+			}
+		}
 		
 		//Add shutdown hook to make sure Myo is cleaned up
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				ntDriveLeft.forceSetDouble(0);
-				ntDriveRight.forceSetDouble(0);
-				ntElevator.forceSetDouble(0);
-				ntIntake.forceSetDouble(0);
-				if(myoHub != null) {
-					myo.lock();
-					myoHub.release();
+				if(connectToNT) {
+					ntDriveLeft.forceSetDouble(0);
+					ntDriveRight.forceSetDouble(0);
+					ntElevator.forceSetDouble(0);
+					ntIntake.forceSetDouble(0);
+				}
+				if(connectToMyo) {
+					if(myoHub != null) {
+						myo.lock();
+						myoHub.release();
+					}
 				}
 			}
 		});
@@ -1029,17 +1052,19 @@ public class BridgeMain {
 		}
 		
 		//Initialize Myo
-		try {
-			myoHub = new Hub("org.usfirst.frc.team6135.MyoBot");
-			myo = myoHub.waitForMyo(10000);
-			myoHub.addListener(collector);
-			myoHub.setLockingPolicy(Hub.LockingPolicy.lockingPolicyNone);
-		}
-		catch(MyoException e) {
-			SwingUtilities.invokeLater(() -> {
-				JOptionPane.showMessageDialog(mainFrame, "Cannot connect to Myo!\nThe program will now exit.", "Error", JOptionPane.ERROR_MESSAGE);
-				System.exit(0);
-			});
+		if(connectToMyo) {
+			try {
+				myoHub = new Hub("org.usfirst.frc.team6135.MyoBot");
+				myo = myoHub.waitForMyo(10000);
+				myoHub.addListener(collector);
+				myoHub.setLockingPolicy(Hub.LockingPolicy.lockingPolicyNone);
+			}
+			catch(MyoException e) {
+				SwingUtilities.invokeLater(() -> {
+					JOptionPane.showMessageDialog(mainFrame, "Cannot connect to Myo!\nThe program will now exit.", "Error", JOptionPane.ERROR_MESSAGE);
+					System.exit(0);
+				});
+			}
 		}
 		
 		//Dispose of the dialog
@@ -1067,7 +1092,8 @@ public class BridgeMain {
 		});
 		
 		while(!exit) {
-			myoHub.run(100);
+			if(myoHub != null)
+				myoHub.run(100);
 			
 			boolean onArm = collector.onArm();
 			boolean myoUnlocked = collector.isUnlocked();
