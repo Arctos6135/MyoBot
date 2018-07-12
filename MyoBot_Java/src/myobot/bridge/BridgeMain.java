@@ -1250,7 +1250,8 @@ public class BridgeMain {
 				}
 				if(connectToMyo) {
 					if(myoHub != null) {
-						myo.lock();
+						if(myo != null)
+							myo.lock();
 						myoHub.release();
 					}
 				}
