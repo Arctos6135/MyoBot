@@ -1011,70 +1011,117 @@ public class BridgeMain {
 	 * Computes the speeds that are to be sent to the robot based on the Myo's orientation and pose.
 	 */
 	public static void computeSpeeds(EulerOrientation orientation, Pose pose) {
-
-		if(pose != Pose.doubleTap && doubleTapping) {
-			doubleTapping = false;
-		}
-		if(orientation.getPitchDegrees() > -20) {
-			elevatorSpeed = 0;
-			double drivingSpeed = Math.min(45, orientation.getPitchDegrees() + 20) / 45.0;
-			//Square to make small movements easier to control
-			drivingSpeed *= drivingSpeed;
-			
-			if(!drivingForwards) {
-				drivingSpeed = -drivingSpeed;
+		if(controlsMode == ControlsMode.V2_1) {
+			if(pose != Pose.doubleTap && doubleTapping) {
+				doubleTapping = false;
 			}
-			
-			double turningSpeed = 0;
-			if(Math.abs(orientation.getYawDegrees()) >= 15) {
-				turningSpeed = Math.min(70, Math.abs(orientation.getYawDegrees()) - 15) / 70;
-				//Square the turning speed to make small turns easier to control
-				turningSpeed *= turningSpeed;
-				//Turning left
-				if(orientation.getYawDegrees() > 0) {
-					turningSpeed = -turningSpeed;
+			if(orientation.getPitchDegrees() > -20) {
+				elevatorSpeed = 0;
+				double drivingSpeed = Math.min(45, orientation.getPitchDegrees() + 20) / 45.0;
+				//Square to make small movements easier to control
+				drivingSpeed *= drivingSpeed;
+				
+				if(!drivingForwards) {
+					drivingSpeed = -drivingSpeed;
+				}
+				
+				double turningSpeed = 0;
+				if(Math.abs(orientation.getYawDegrees()) >= 15) {
+					turningSpeed = Math.min(70, Math.abs(orientation.getYawDegrees()) - 15) / 70;
+					//Square the turning speed to make small turns easier to control
+					turningSpeed *= turningSpeed;
+					//Turning left
+					if(orientation.getYawDegrees() > 0) {
+						turningSpeed = -turningSpeed;
+					}
+				}
+				
+				drivingSpeed -= Math.copySign(turningSpeed, drivingSpeed);
+				leftMotorSpeed = drivingSpeed * driveMaxSpeed + turningSpeed * driveMaxSpeed;
+				rightMotorSpeed = drivingSpeed * driveMaxSpeed - turningSpeed * driveMaxSpeed;
+				
+				intakeSpeed = 0;
+				if(pose == Pose.fist) {
+					intakeSpeed = intakeMaxSpeed;
+				}
+				else if(pose == Pose.fingersSpread) {
+					intakeSpeed = -intakeMaxSpeed;
 				}
 			}
-			
-			drivingSpeed -= Math.copySign(turningSpeed, drivingSpeed);
-			leftMotorSpeed = drivingSpeed * driveMaxSpeed + turningSpeed * driveMaxSpeed;
-			rightMotorSpeed = drivingSpeed * driveMaxSpeed - turningSpeed * driveMaxSpeed;
-			
-			intakeSpeed = 0;
-			if(pose == Pose.fist) {
+			else if(pose == Pose.fist) {
 				intakeSpeed = intakeMaxSpeed;
+				elevatorSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
 			}
 			else if(pose == Pose.fingersSpread) {
 				intakeSpeed = -intakeMaxSpeed;
+				elevatorSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else if(pose == Pose.waveOut) {
+				elevatorSpeed = -elevatorMaxSpeed;
+				intakeSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else if(pose == Pose.waveIn) {
+				elevatorSpeed = elevatorMaxSpeed;
+				intakeSpeed = 0;
+				leftMotorSpeed = rightMotorSpeed = 0;
+			}
+			else if(pose == Pose.doubleTap && !doubleTapping) {
+				drivingForwards = !drivingForwards;
+				doubleTapping = true;
+				myo.notifyUserAction();
+			}
+			else {
+				elevatorSpeed = intakeSpeed = leftMotorSpeed = rightMotorSpeed = 0;
 			}
 		}
-		else if(pose == Pose.fist) {
-			intakeSpeed = intakeMaxSpeed;
-			elevatorSpeed = 0;
-			leftMotorSpeed = rightMotorSpeed = 0;
-		}
-		else if(pose == Pose.fingersSpread) {
-			intakeSpeed = -intakeMaxSpeed;
-			elevatorSpeed = 0;
-			leftMotorSpeed = rightMotorSpeed = 0;
-		}
-		else if(pose == Pose.waveOut) {
-			elevatorSpeed = -elevatorMaxSpeed;
-			intakeSpeed = 0;
-			leftMotorSpeed = rightMotorSpeed = 0;
-		}
-		else if(pose == Pose.waveIn) {
-			elevatorSpeed = elevatorMaxSpeed;
-			intakeSpeed = 0;
-			leftMotorSpeed = rightMotorSpeed = 0;
-		}
-		else if(pose == Pose.doubleTap && !doubleTapping) {
-			drivingForwards = !drivingForwards;
-			doubleTapping = true;
-			myo.notifyUserAction();
-		}
-		else {
-			elevatorSpeed = intakeSpeed = leftMotorSpeed = rightMotorSpeed = 0;
+		else if(controlsMode == ControlsMode.V2_0) {
+			if(Math.abs(orientation.getPitchDegrees()) >= 15) {
+				double pitch = Math.max(-60, Math.min(60, orientation.getPitchDegrees()));
+				pitch -= Math.copySign(15, pitch);
+				
+				double frac = Math.abs(pitch) / 45;
+				
+				intakeSpeed = leftMotorSpeed = rightMotorSpeed = 0;
+				if(pitch >= 0) {
+					elevatorSpeed = frac * -elevatorMaxSpeed;
+				}
+				else {
+					elevatorSpeed = frac * elevatorMaxSpeed;
+				}
+			}
+			else if(pose == Pose.fist || pose == Pose.fingersSpread) {
+				
+				intakeSpeed = elevatorSpeed = 0;
+				if(Math.abs(orientation.getRollDegrees()) >= 10) {
+					double turningSpeed = (Math.min(45, Math.abs(orientation.getRollDegrees())) - 10) / 35;
+					//Square the turning speed to make small turns easier to control
+					turningSpeed *= turningSpeed;
+					//Turning left
+					if(orientation.getRollDegrees() > 0) {
+						turningSpeed = -turningSpeed;
+					}
+					
+					leftMotorSpeed = Math.max(-driveMaxSpeed, Math.min(driveMaxSpeed, (pose == Pose.fist ? driveMaxSpeed : -driveMaxSpeed) + turningSpeed * (pose == Pose.fist ? driveMaxSpeed : -driveMaxSpeed)));
+					rightMotorSpeed = Math.max(-driveMaxSpeed, Math.min(driveMaxSpeed, (pose == Pose.fist ? driveMaxSpeed : -driveMaxSpeed) - turningSpeed * (pose == Pose.fist ? driveMaxSpeed : -driveMaxSpeed)));
+				}
+				else {
+					leftMotorSpeed = rightMotorSpeed = pose == Pose.fist ? driveMaxSpeed : -driveMaxSpeed;
+				}
+			}
+			else if(pose == Pose.waveIn) {
+				leftMotorSpeed = rightMotorSpeed = elevatorSpeed = 0;
+				intakeSpeed = intakeMaxSpeed;
+			}
+			else if(pose == Pose.waveOut) {
+				leftMotorSpeed = rightMotorSpeed = elevatorSpeed = 0;
+				intakeSpeed = -intakeMaxSpeed;
+			}
+			else {
+				elevatorSpeed = intakeSpeed = leftMotorSpeed = rightMotorSpeed = 0;
+			}
 		}
 	}
 	/**
