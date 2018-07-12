@@ -77,6 +77,8 @@ public class BridgeMain {
 	public static final String TOOLTIP_1_0 = "<html>Controls: Version 1.0<br>Click to cycle through all supported controls versions.</html>";
 	public static final String TOOLTIP_2_0 = "<html>Controls: Version 2.0<br>Click to cycle through all supported controls versions.</html>";
 	public static final String TOOLTIP_2_1 = "<html>Controls: Version 2.1<br>Click to cycle through all supported controls versions.</html>";
+	public static final String TOOLTIP_FORWARDS = "<html>Drive Direction: Forward<br>Double-Tap or click to change.</html>";
+	public static final String TOOLTIP_BACKWARDS = "<html>Drive Direction: Backward<br>Double-Tap or click to change.</html>";
 	public static final int GYRO_SIZE = 80;
 	public static final int SPEEDOMETER_SIZE = 80;
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
@@ -90,6 +92,8 @@ public class BridgeMain {
 	
 	static double driveMaxSpeed = 0.5, elevatorMaxSpeed = 0.6, intakeMaxSpeed = 0.7;
 	static double leftMotorSpeed, rightMotorSpeed, elevatorSpeed, intakeSpeed;
+	
+	static boolean drivingForwards = true;
 	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
@@ -107,10 +111,10 @@ public class BridgeMain {
 	//Buttons in the top bar
 	static JButton lockUnlockButton, invertButton, updateRefButton, changeControlsModeButton;
 	//Different icons
-	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon, controlsModeIcon;
+	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon, controlsModeIcon, directionIcon;
 	static ImageIcon poseIcon;
 	//Labels for the icons
-	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel, controlsModeLabel;
+	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel, controlsModeLabel, directionLabel;
 	//Orientation components
 	static AngleVisualizer yawVisualizer, pitchVisualizer, rollVisualizer;
 	static JPanel yawPanel, pitchPanel, rollPanel;
@@ -150,6 +154,7 @@ public class BridgeMain {
 	//Used to determine whether or not to update the icons
 	static boolean lastOnArm = false;
 	static boolean lastUnlocked = false;
+	static boolean lastDrivingForwards = drivingForwards;
 	static Pose lastPose = Pose.rest;
 	//The "connecting to myo" dialog
 	static JDialog connectingDialog;
@@ -158,7 +163,8 @@ public class BridgeMain {
 	static JLabel loadingStatusLabel;
 	//Different icon images
 	static Image imgMyoBotIcon;
-	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted, imgControls1_0, imgControls2_0, imgControls2_1;
+	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted, imgForwardSmall, imgBackwardSmall,
+			imgControls1_0, imgControls2_0, imgControls2_1;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
 	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgTurnCW, imgTurnCCW, imgNoMovement;
 	
@@ -284,6 +290,8 @@ public class BridgeMain {
 
 		imgForward = loadUIImage("arrow_front.png", DIRECTION_ICON_SIZE);
 		imgBackward = loadUIImage("arrow_back.png", DIRECTION_ICON_SIZE);
+		imgForwardSmall = imgForward.getScaledInstance(SMALL_ICON_SIZE.width, SMALL_ICON_SIZE.height, Image.SCALE_SMOOTH);
+		imgBackwardSmall = imgBackward.getScaledInstance(SMALL_ICON_SIZE.width, SMALL_ICON_SIZE.height, Image.SCALE_SMOOTH);
 		imgFLeft = loadUIImage("arrow_front_left.png", DIRECTION_ICON_SIZE);
 		imgBLeft = loadUIImage("arrow_back_left.png", DIRECTION_ICON_SIZE);
 		imgFRight = loadUIImage("arrow_front_right.png", DIRECTION_ICON_SIZE);
@@ -454,6 +462,7 @@ public class BridgeMain {
 					onArmStatusIcon = new ImageIcon(imgOffArm);
 					invertStatusIcon = new ImageIcon(invertAngles ? imgInverted : imgNonInverted);
 					controlsModeIcon = new ImageIcon(controlsMode.getIcon());
+					directionIcon = new ImageIcon(drivingForwards ? imgForwardSmall : imgBackwardSmall);
 					topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 5));
 					//Store these lambdas as runnables
 					//Reused later
@@ -491,6 +500,14 @@ public class BridgeMain {
 						
 						controlsModeIcon.setImage(controlsMode.getIcon());
 						controlsModeLabel.setToolTipText(controlsMode.getTooltip());
+						if(controlsMode == ControlsMode.V2_1) {
+							directionIcon.setImage(drivingForwards ? imgForwardSmall : imgBackwardSmall);
+							directionLabel.setToolTipText(drivingForwards ? TOOLTIP_FORWARDS : TOOLTIP_BACKWARDS);
+							directionLabel.setVisible(true);
+						}
+						else {
+							directionLabel.setVisible(false);
+						}
 						
 						if(collector.isUnlocked() && collector.onArm()) {
 							myo.lock();
@@ -537,6 +554,22 @@ public class BridgeMain {
 						}
 					});
 					topBarPanel.add(controlsModeLabel);
+					directionLabel = new JLabel(directionIcon);
+					if(controlsMode != ControlsMode.V2_1) {
+						directionLabel.setVisible(false);
+					}
+					directionLabel.addMouseListener(new MouseAdapter() {
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							drivingForwards = !drivingForwards;
+							lastDrivingForwards = drivingForwards;
+							directionIcon.setImage(drivingForwards ? imgForwardSmall : imgBackwardSmall);
+							directionLabel.setToolTipText(drivingForwards ? TOOLTIP_FORWARDS : TOOLTIP_BACKWARDS);
+							directionLabel.repaint();
+						}
+					});
+					directionLabel.setToolTipText(drivingForwards ? TOOLTIP_FORWARDS : TOOLTIP_BACKWARDS);
+					topBarPanel.add(directionLabel);
 					
 					//Buttons have their own sub-panel so they can have different gaps
 					JPanel topButtonsPanel = new JPanel();
@@ -575,10 +608,16 @@ public class BridgeMain {
 					updateRefButton.setAction(updateRefAction);
 					updateRefAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_O);
 					
-					changeControlsModeButton = new JButton("Change Controls Version");
-					changeControlsModeButton.addActionListener(e -> {
-						changeControlsMode.run();
-					});
+					changeControlsModeButton = new JButton();
+					@SuppressWarnings("serial")
+					Action changeControlsAction = new AbstractAction("Change Controls Version") {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							changeControlsMode.run();
+						}
+					};
+					changeControlsModeButton.setAction(changeControlsAction);
+					changeControlsAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
 					
 					topButtonsPanel.add(lockUnlockButton);
 					topButtonsPanel.add(invertButton);
@@ -893,6 +932,13 @@ public class BridgeMain {
 			return;
 		}
 		
+		if(lastDrivingForwards != drivingForwards) {
+			lastDrivingForwards = drivingForwards;
+			directionIcon.setImage(drivingForwards ? imgForwardSmall : imgBackwardSmall);
+			directionLabel.setToolTipText(drivingForwards ? TOOLTIP_FORWARDS : TOOLTIP_BACKWARDS);
+			directionLabel.repaint();
+		}
+		
 		if(orientation.getYawDegrees() != yawVisualizer.getAngle()) {
 			yawField.setText(String.valueOf(roundToPlaces(orientation.getYawDegrees(), 2)));
 			//Values are negated because moving left causes a negative yaw
@@ -1006,7 +1052,6 @@ public class BridgeMain {
 		speedometerPanel.repaint();
 	}
 	
-	static boolean drivingForwards = true;
 	static boolean doubleTapping = false;
 	/**
 	 * Computes the speeds that are to be sent to the robot based on the Myo's orientation and pose.
