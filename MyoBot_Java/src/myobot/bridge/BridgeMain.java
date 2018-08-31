@@ -231,13 +231,13 @@ public class BridgeMain {
 	 * @throws IOException
 	 */
 	public static Image loadUIImage(String name, Dimension size) throws IOException {
-		InputStream stream = BridgeMain.class.getClass().getResourceAsStream("/resources/ui/icons/" + name);
+		InputStream stream = BridgeMain.class.getResourceAsStream("/resources/ui/icons/" + name);
 		Image img = ImageIO.read(stream).getScaledInstance(size.width, size.height, Image.SCALE_SMOOTH);
 		stream.close();
 		return img;
 	}
 	public static Image loadControlsVersionImage(String version) throws IOException {
-		InputStream stream = BridgeMain.class.getClass().getResourceAsStream("/resources/ui/icons/control_mode_base.png");
+		InputStream stream = BridgeMain.class.getResourceAsStream("/resources/ui/icons/control_mode_base.png");
 		BufferedImage img = ImageIO.read(stream);
 		stream.close();
 		Font versionFont = new Font("Arial", Font.PLAIN, 90);
