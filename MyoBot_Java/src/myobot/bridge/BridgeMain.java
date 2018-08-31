@@ -10,6 +10,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Toolkit;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -19,6 +20,8 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
 import java.util.List;
@@ -263,6 +266,29 @@ public class BridgeMain {
 		component.setPreferredSize(size);
 		component.setMaximumSize(size);
 		component.setMinimumSize(size);
+	}
+	/**
+	 * Returns the complete stack trace of a {@code Throwable} as a {@code String}.
+	 * @param t The {@code Throwable} to take the stack trace from
+	 * @return The complete stack trace of {@code t}, as a {@code String}
+	 */
+	public static String getStackTraceAsString(Throwable t) {
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		t.printStackTrace(pw);
+		pw.close();
+		return sw.toString();
+	}
+	public static void reportFatalError(Throwable e) {
+		e.printStackTrace();
+		//Close ALL windows
+		//If we don't do this, the windows and dialogs can cover our message!
+		Window[] windows = Window.getWindows();
+		for(Window w : windows) {
+			w.dispose();
+		}
+		JOptionPane.showMessageDialog(null, "A fatal error has occurred.\nStack Trace:\n" + getStackTraceAsString(e) + "\nThe application will now exit.", "Fatal Error", JOptionPane.ERROR_MESSAGE);
+		System.exit(1);
 	}
 	
 	/**
@@ -877,9 +903,8 @@ public class BridgeMain {
 					uiIsSetUp = true;
 					connectingDialog.setVisible(true);
 				}
-				catch(IOException e) {
-					e.printStackTrace();
-					System.exit(1);
+				catch(Throwable e) {
+					reportFatalError(e);
 				}
 			}
 		};
@@ -1262,9 +1287,8 @@ public class BridgeMain {
 			try {
 				constructAndShowUI();
 			}
-			catch(IOException e) {
-				e.printStackTrace();
-				System.exit(0);
+			catch(Throwable e) {
+				reportFatalError(e);
 			}
 		});
 		
@@ -1274,8 +1298,7 @@ public class BridgeMain {
 				Thread.sleep(500);
 			}
 			catch (InterruptedException e) {
-				e.printStackTrace();
-				System.exit(1);
+				reportFatalError(e);
 			}
 		}
 		
