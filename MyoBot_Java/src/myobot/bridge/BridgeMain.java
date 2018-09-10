@@ -82,6 +82,7 @@ public class BridgeMain {
 	public static final String TOOLTIP_2_1 = "<html>Controls: Version 2.1<br>Click to cycle through all supported controls versions.</html>";
 	public static final String TOOLTIP_FORWARDS = "<html>Drive Direction: Forward<br>Double-Tap or click to change.</html>";
 	public static final String TOOLTIP_BACKWARDS = "<html>Drive Direction: Backward<br>Double-Tap or click to change.</html>";
+	public static final String TOOLTIP_DISABLED = "<html>Robot is disabled.<br>Click to re-enable.</html>";
 	public static final int GYRO_SIZE = 80;
 	public static final int SPEEDOMETER_SIZE = 80;
 	public static final Dimension BUTTON_SIZE = new Dimension(80, 30);
@@ -98,6 +99,9 @@ public class BridgeMain {
 	
 	static boolean drivingForwards = true;
 	
+	//If false, no data will be sent
+	static boolean enabled = false;
+	
 	//If true then Euler angles will be inverted
 	//This is for when the Myo is worn upside down
 	static boolean invertAngles = false;
@@ -112,12 +116,12 @@ public class BridgeMain {
 	//Panel that stores the top status icons and buttons
 	static JPanel topBarPanel;
 	//Buttons in the top bar
-	static JButton lockUnlockButton, invertButton, updateRefButton, changeControlsModeButton;
+	static JButton lockUnlockButton, enableDisableButton, invertButton, updateRefButton, changeControlsModeButton;
 	//Different icons
-	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon, controlsModeIcon, directionIcon;
+	static ImageIcon unlockStatusIcon, onArmStatusIcon, invertStatusIcon, controlsModeIcon, disabledIcon, directionIcon;
 	static ImageIcon poseIcon;
 	//Labels for the icons
-	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel, controlsModeLabel, directionLabel;
+	static JLabel unlockStatusLabel, onArmStatusLabel, invertStatusLabel, controlsModeLabel, disabledLabel, directionLabel;
 	//Orientation components
 	static AngleVisualizer yawVisualizer, pitchVisualizer, rollVisualizer;
 	static JPanel yawPanel, pitchPanel, rollPanel;
@@ -167,7 +171,7 @@ public class BridgeMain {
 	//Different icon images
 	static Image imgMyoBotIcon;
 	static Image imgLocked, imgUnlocked, imgOnArm, imgOffArm, imgNonInverted, imgInverted, imgForwardSmall, imgBackwardSmall,
-			imgControls1_0, imgControls2_0, imgControls2_1;
+			imgControls1_0, imgControls2_0, imgControls2_1, imgDisabled;
 	static Image imgFist, imgSpreadFingers, imgWaveIn, imgWaveOut, imgDoubleTap, imgNoPose;
 	static Image imgForward, imgBackward, imgFLeft, imgBLeft, imgFRight, imgBRight, imgTurnCW, imgTurnCCW, imgNoMovement;
 	
@@ -302,6 +306,7 @@ public class BridgeMain {
 		imgOffArm = loadUIImage("not_on_arm.png", SMALL_ICON_SIZE);
 		imgInverted = loadUIImage("inverted.png", SMALL_ICON_SIZE);
 		imgNonInverted = loadUIImage("not_inverted.png", SMALL_ICON_SIZE);
+		imgDisabled = loadUIImage("disabled.png", SMALL_ICON_SIZE);
 		
 		imgControls1_0 = loadControlsVersionImage("1.0");
 		imgControls2_0 = loadControlsVersionImage("2.0");
@@ -489,6 +494,7 @@ public class BridgeMain {
 					invertStatusIcon = new ImageIcon(invertAngles ? imgInverted : imgNonInverted);
 					controlsModeIcon = new ImageIcon(controlsMode.getIcon());
 					directionIcon = new ImageIcon(drivingForwards ? imgForwardSmall : imgBackwardSmall);
+					disabledIcon = new ImageIcon(imgDisabled);
 					topBarPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 5));
 					//Store these lambdas as runnables
 					//Reused later
@@ -547,6 +553,15 @@ public class BridgeMain {
 						topBarPanel.revalidate();
 						topBarPanel.repaint();
 					};
+					Runnable enableDisableRobot = () -> {
+						enabled = !enabled;
+						
+						disabledLabel.setVisible(!enabled);
+						enableDisableButton.setText(enabled ? "Disable" : "Enable");
+						
+						topBarPanel.revalidate();
+						topBarPanel.repaint();
+					};
 					
 					//Add our ImageIcons to the top bar
 					unlockStatusLabel = new JLabel(unlockStatusIcon);
@@ -580,6 +595,18 @@ public class BridgeMain {
 						}
 					});
 					topBarPanel.add(controlsModeLabel);
+					disabledLabel = new JLabel(disabledIcon);
+					if(enabled) {
+						disabledLabel.setVisible(false);
+					}
+					disabledLabel.setToolTipText(TOOLTIP_DISABLED);
+					disabledLabel.addMouseListener(new MouseAdapter() {
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							enableDisableRobot.run();
+						}
+					});
+					topBarPanel.add(disabledLabel);
 					directionLabel = new JLabel(directionIcon);
 					if(controlsMode != ControlsMode.V2_1) {
 						directionLabel.setVisible(false);
@@ -637,7 +664,7 @@ public class BridgeMain {
 					
 					changeControlsModeButton = new JButton();
 					@SuppressWarnings("serial")
-					Action changeControlsAction = new AbstractAction("Change Controls Version") {
+					Action changeControlsAction = new AbstractAction("Change Controls") {
 						@Override
 						public void actionPerformed(ActionEvent e) {
 							changeControlsMode.run();
@@ -646,7 +673,19 @@ public class BridgeMain {
 					changeControlsModeButton.setAction(changeControlsAction);
 					changeControlsAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
 					
+					enableDisableButton = new JButton();
+					@SuppressWarnings("serial")
+					Action enableDisableAction = new AbstractAction(enabled ? "Disable" : "Enable") {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							enableDisableRobot.run();
+						}
+					};
+					enableDisableButton.setAction(enableDisableAction);
+					enableDisableAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
+					
 					topButtonsPanel.add(lockUnlockButton);
+					topButtonsPanel.add(enableDisableButton);
 					topButtonsPanel.add(invertButton);
 					topButtonsPanel.add(updateRefButton);
 					topButtonsPanel.add(changeControlsModeButton);
@@ -1238,7 +1277,7 @@ public class BridgeMain {
 	/**
 	 * Sends the speed values over NetworkTables to the robot.
 	 */
-	public static void updateNT() {
+	public static void updateNT(double leftMotorSpeed, double rightMotorSpeed, double elevatorSpeed, double intakeSpeed) {
 		ntDriveLeft.forceSetDouble(leftMotorSpeed);
 		ntDriveRight.forceSetDouble(rightMotorSpeed);
 		ntElevator.forceSetDouble(elevatorSpeed);
@@ -1357,7 +1396,15 @@ public class BridgeMain {
 			else {
 				leftMotorSpeed = rightMotorSpeed = elevatorSpeed = intakeSpeed = 0;
 			}
-			updateNT();
+			
+			//Since we still want to see the calculated speeds when we're disabled, instead of not calculating the speeds at all,
+			//We only need to send over zeroes
+			if(enabled) {
+				updateNT(leftMotorSpeed, rightMotorSpeed, elevatorSpeed, intakeSpeed);
+			}
+			else {
+				updateNT(0, 0, 0, 0);
+			}
 			
 			if(!paused) {
 				try {
