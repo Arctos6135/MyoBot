@@ -12,7 +12,6 @@ import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.command.Scheduler;
-import myobot.robot.commands.NetworkTablesDrive;
 import myobot.robot.subsystems.DriveTrain;
 import myobot.robot.subsystems.Elevator;
 import myobot.robot.subsystems.Intake;
@@ -33,9 +32,6 @@ public class Robot extends TimedRobot {
 	public static NetworkTableInstance ntInstance;
 	public static NetworkTable ntTable;
 	public static NetworkTableEntry ntLeftDrive, ntRightDrive, ntIntake, ntElevator;
-	
-	//Shared default command between all subsystems
-	public static NetworkTablesDrive defaultCommand;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -55,10 +51,6 @@ public class Robot extends TimedRobot {
 		driveTrain = new DriveTrain();
 		elevator = new Elevator();
 		intake = new Intake();
-		defaultCommand = new NetworkTablesDrive();
-		driveTrain.setDefaultCommand(defaultCommand);
-		elevator.setDefaultCommand(defaultCommand);
-		intake.setDefaultCommand(defaultCommand);
 	}
 
 	/**

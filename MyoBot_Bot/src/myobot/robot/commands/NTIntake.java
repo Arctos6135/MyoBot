@@ -6,13 +6,11 @@ import myobot.robot.Robot;
 /**
  *
  */
-public class NetworkTablesDrive extends Command {
+public class NTIntake extends Command {
 
-    public NetworkTablesDrive() {
+    public NTIntake() {
         // Use requires() here to declare subsystem dependencies
         // eg. requires(chassis);
-    	requires(Robot.driveTrain);
-    	requires(Robot.elevator);
     	requires(Robot.intake);
     }
 
@@ -22,9 +20,9 @@ public class NetworkTablesDrive extends Command {
 
     // Called repeatedly when this Command is scheduled to run
     protected void execute() {
-    	Robot.driveTrain.setMotorsVBus(Robot.ntLeftDrive.getDouble(0), Robot.ntRightDrive.getDouble(0));
-    	Robot.elevator.set(Robot.ntElevator.getDouble(0));
-    	Robot.intake.set(Robot.ntIntake.getDouble(0));
+    	double output = Robot.ntIntake.getDouble(0);
+    	System.out.printf("Intake Output: %f\n", output);
+    	Robot.intake.set(output);
     }
 
     // Make this return true when this Command no longer needs to run execute()
@@ -34,8 +32,6 @@ public class NetworkTablesDrive extends Command {
 
     // Called once after isFinished returns true
     protected void end() {
-    	Robot.driveTrain.setMotorsVBus(0, 0);
-    	Robot.elevator.set(0);
     	Robot.intake.set(0);
     }
 

@@ -4,6 +4,7 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 
 import edu.wpi.first.wpilibj.command.Subsystem;
 import myobot.robot.RobotMap;
+import myobot.robot.commands.NTDrive;
 
 /**
  *	Subsystem for the driving of the robot
@@ -25,7 +26,7 @@ public class DriveTrain extends Subsystem {
 	}
 	
     public void initDefaultCommand() {
-        //Will be set later by Robot.java
+        setDefaultCommand(new NTDrive());
     }
 }
 

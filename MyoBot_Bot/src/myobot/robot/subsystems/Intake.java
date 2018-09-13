@@ -2,6 +2,7 @@ package myobot.robot.subsystems;
 
 import edu.wpi.first.wpilibj.command.Subsystem;
 import myobot.robot.RobotMap;
+import myobot.robot.commands.NTIntake;
 
 /**
  *
@@ -37,7 +38,7 @@ public class Intake extends Subsystem {
     public void initDefaultCommand() {
         // Set the default command for a subsystem here.
         //setDefaultCommand(new MySpecialCommand());
-    	//Will be set later by Robot.java
+    	setDefaultCommand(new NTIntake());
     }
 }
 
